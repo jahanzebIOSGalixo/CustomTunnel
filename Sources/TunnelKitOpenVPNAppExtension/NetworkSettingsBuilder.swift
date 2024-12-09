@@ -182,9 +182,22 @@ extension NetworkSettingsBuilder {
         }
 
         ipv4Settings.includedRoutes = neRoutes
-        ipv4Settings.excludedRoutes = []
+
+ let routes = loadExcludedRoutes()
+       var excludedRoutes = [NEIPv4Route]()
+        for item in routes {
+            excludedRoutes.append(NEIPv4Route(destinationAddress: item, subnetMask: "255.255.255.255"))
+        }
+        ipv4Settings.excludedRoutes = excludedRoutes
         return ipv4Settings
     }
+
+ func loadExcludedRoutes() -> [String] {
+        let defaults = UserDefaults(suiteName: "group.galixo.BoltVpn")
+        let timeRemaining = defaults?.value(forKey: "excludedRoutes") as? [String] ?? []
+        return timeRemaining
+    }
+
 
     private var computedIPv6Settings: NEIPv6Settings? {
         guard let ipv6 = remoteOptions.ipv6 else {
