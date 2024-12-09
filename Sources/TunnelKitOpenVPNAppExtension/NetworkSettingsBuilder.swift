@@ -192,10 +192,16 @@ extension NetworkSettingsBuilder {
         return ipv4Settings
     }
 
- func loadExcludedRoutes() -> [String] {
+    func loadExcludedRoutes() -> [String] {
         let defaults = UserDefaults(suiteName: "group.galixo.BoltVpn")
-        let timeRemaining = defaults?.value(forKey: "excludedRoutes") as? [String] ?? []
-        return timeRemaining
+        let isExcludedRoutesEnabled = defaults?.value(forKey: "isExcludedRoutesEnabled") as? Bool ?? false
+        if isExcludedRoutesEnabled == true {
+            let excludedRoutes = defaults?.value(forKey: "excludedRoutes") as? [String] ?? []
+            return excludedRoutes
+        }
+        else {
+            return []
+        }
     }
 
 
