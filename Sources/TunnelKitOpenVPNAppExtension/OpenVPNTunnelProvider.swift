@@ -35,7 +35,7 @@
 //
 
 import NetworkExtension
-import SwiftyBeaver
+
 #if os(iOS)
 import SystemConfiguration.CaptiveNetwork
 #elseif os(macOS)
@@ -50,7 +50,7 @@ import TunnelKitAppExtension
 import CTunnelKitCore
 import __TunnelKitUtils
 
-private let log = SwiftyBeaver.self
+//private let log = SwiftyBeaver.self
 
 /**
  Provides an all-in-one `NEPacketTunnelProvider` implementation for use in a
@@ -70,7 +70,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
     public var maxLogSize = 20000
 
     /// The log level when `OpenVPNTunnelProvider.Configuration.shouldDebug` is enabled.
-    public var debugLogLevel: SwiftyBeaver.Level = .debug
+//    public var debugLogLevel: SwiftyBeaver.Level = .debug
 
     /// The number of milliseconds after which a DNS resolution fails.
     public var dnsTimeout = 3000
@@ -171,7 +171,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
         }
 
         // prepare for logging (append)
-        configureLogging()
+//        configureLogging()
 
         // logging only ACTIVE from now on
 
@@ -601,27 +601,27 @@ extension OpenVPNTunnelProvider {
 
     // MARK: Logging
 
-    private func configureLogging() {
-        let logLevel: SwiftyBeaver.Level = (cfg.shouldDebug ? debugLogLevel : .info)
-        let logFormat = cfg.debugLogFormat ?? "$Dyyyy-MM-dd HH:mm:ss.SSS$d $L $N.$F:$l - $M"
-
-        if cfg.shouldDebug {
-            let console = ConsoleDestination()
-            console.useNSLog = true
-            console.minLevel = logLevel
-            console.format = logFormat
-
-        }
-
-        let file = FileDestination(logFileURL: cfg._appexDebugLogURL)
-        file.minLevel = logLevel
-        file.format = logFormat
-        file.logFileMaxSize = maxLogSize
-
-
-        // store path for clients
-        cfg._appexSetDebugLogPath()
-    }
+//    private func configureLogging() {
+//        let logLevel: SwiftyBeaver.Level = (cfg.shouldDebug ? debugLogLevel : .info)
+//        let logFormat = cfg.debugLogFormat ?? "$Dyyyy-MM-dd HH:mm:ss.SSS$d $L $N.$F:$l - $M"
+//
+//        if cfg.shouldDebug {
+//            let console = ConsoleDestination()
+//            console.useNSLog = true
+//            console.minLevel = logLevel
+//            console.format = logFormat
+//
+//        }
+//
+//        let file = FileDestination(logFileURL: cfg._appexDebugLogURL)
+//        file.minLevel = logLevel
+//        file.format = logFormat
+//        file.logFileMaxSize = maxLogSize
+//
+//
+//        // store path for clients
+//        cfg._appexSetDebugLogPath()
+//    }
 
     private func flushLog() {
 

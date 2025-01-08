@@ -25,9 +25,9 @@
 
 import Foundation
 import NetworkExtension
-import SwiftyBeaver
 
-private let log = SwiftyBeaver.self
+
+//private let log = SwiftyBeaver.self
 
 /// `VPN` based on the NetworkExtension framework.
 public class NetworkExtensionVPN: VPN {

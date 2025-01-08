@@ -35,10 +35,10 @@
 //
 
 import Foundation
-import SwiftyBeaver
+
 import TunnelKitCore
 
-private let log = SwiftyBeaver.self
+//private let log = SwiftyBeaver.self
 
 extension OpenVPN {
 

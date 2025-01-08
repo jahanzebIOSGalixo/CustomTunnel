@@ -36,13 +36,13 @@
 
 import Foundation
 import NetworkExtension
-import SwiftyBeaver
+
 import TunnelKitCore
 import TunnelKitAppExtension
 import TunnelKitOpenVPNCore
 import TunnelKitOpenVPNManager
 
-private let log = SwiftyBeaver.self
+//private let log = SwiftyBeaver.self
 
 class ConnectionStrategy {
     private var remotes: [ResolvedRemote]

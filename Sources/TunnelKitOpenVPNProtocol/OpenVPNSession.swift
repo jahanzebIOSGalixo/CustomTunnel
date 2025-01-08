@@ -35,13 +35,13 @@
 //
 
 import Foundation
-import SwiftyBeaver
+
 import TunnelKitCore
 import TunnelKitOpenVPNCore
 import CTunnelKitCore
 import CTunnelKitOpenVPNProtocol
 
-private let log = SwiftyBeaver.self
+//private let log = SwiftyBeaver.self
 
 /// Observes major events notified by a `OpenVPNSession`.
 public protocol OpenVPNSessionDelegate: AnyObject {

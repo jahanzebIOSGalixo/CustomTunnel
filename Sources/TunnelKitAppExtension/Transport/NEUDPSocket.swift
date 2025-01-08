@@ -36,10 +36,10 @@
 
 import Foundation
 import NetworkExtension
-import SwiftyBeaver
+
 import TunnelKitCore
 
-private let log = SwiftyBeaver.self
+//private let log = SwiftyBeaver.self
 
 /// UDP implementation of a `GenericSocket` via NetworkExtension.
 public class NEUDPSocket: NSObject, GenericSocket {
