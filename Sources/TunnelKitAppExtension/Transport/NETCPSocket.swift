@@ -125,7 +125,7 @@ public class NETCPSocket: NSObject, GenericSocket {
 //            log.debug("KVO change reported (\(anyPointer(object)).\(keyPath))")
 //        }
         guard let impl = object as? NWTCPConnection, (impl == self.impl) else {
-            log.warning("Discard KVO change from old socket")
+
             return
         }
         guard let keyPath = keyPath else {
@@ -134,9 +134,9 @@ public class NETCPSocket: NSObject, GenericSocket {
         switch keyPath {
         case #keyPath(NWTCPConnection.state):
             if let resolvedEndpoint = impl.remoteAddress {
-                log.debug("Socket state is \(impl.state) (endpoint: \(impl.endpoint.maskedDescription) -> \(resolvedEndpoint.maskedDescription))")
+
             } else {
-                log.debug("Socket state is \(impl.state) (endpoint: \(impl.endpoint.maskedDescription) -> in progress)")
+
             }
 
             switch impl.state {
@@ -163,7 +163,7 @@ public class NETCPSocket: NSObject, GenericSocket {
             guard impl.hasBetterPath else {
                 break
             }
-            log.debug("Socket has a better path")
+
             delegate?.socketHasBetterPath(self)
 
         default:

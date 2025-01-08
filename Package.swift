@@ -28,7 +28,7 @@ let package = Package(
         )
     ],
     dependencies: [
-//        .package(url: "https://github.com/SwiftyBeaver/SwiftyBeaver", from: "1.9.0"),
+        .package(url: "https://github.com/SwiftyBeaver/SwiftyBeaver", from: "1.9.0"),
         .package(url: "https://github.com/0xBF90E913/openssl-apple", from: "3.2.110")
     ],
     targets: [
@@ -44,12 +44,12 @@ let package = Package(
             dependencies: [
                 "__TunnelKitUtils",
                 "CTunnelKitCore",
-//                "SwiftyBeaver"
+                "SwiftyBeaver"
             ]),
         .target(
             name: "TunnelKitManager",
             dependencies: [
-//                "SwiftyBeaver"
+                "SwiftyBeaver"
             ]),
         .target(
             name: "TunnelKitAppExtension",

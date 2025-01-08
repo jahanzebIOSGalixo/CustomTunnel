@@ -93,14 +93,14 @@ public class InterfaceObserver: NSObject {
     private func fireWifiChange(withSSID ssid: String?) {
         if ssid != lastWifiName {
             if let current = ssid {
-                log.debug("SSID is now '\(current.maskedDescription)'")
+
                 if let last = lastWifiName, (current != last) {
                     queue?.async {
                         NotificationCenter.default.post(name: InterfaceObserver.didDetectWifiChange, object: nil)
                     }
                 }
             } else {
-                log.debug("SSID is null")
+
             }
         }
         lastWifiName = ssid

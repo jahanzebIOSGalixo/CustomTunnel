@@ -67,12 +67,12 @@ class ResolvedRemote: CustomStringConvertible {
     private func handleResult(_ result: Result<[DNSRecord], Error>) {
         switch result {
         case .success(let records):
-            log.debug("DNS resolved addresses: \(records.map { $0.address }.maskedDescription)")
+
             isResolved = true
             resolvedEndpoints = unrolledEndpoints(records: records)
 
         case .failure:
-            log.error("DNS resolution failed!")
+
             isResolved = false
             resolvedEndpoints = []
         }
@@ -84,7 +84,7 @@ class ResolvedRemote: CustomStringConvertible {
         }.map {
             Endpoint($0.address, originalEndpoint.proto)
         }
-        log.debug("Unrolled endpoints: \(endpoints.maskedDescription)")
+
         return endpoints
     }
 

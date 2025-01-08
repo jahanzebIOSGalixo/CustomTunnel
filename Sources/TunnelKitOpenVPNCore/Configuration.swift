@@ -571,7 +571,7 @@ extension OpenVPN {
                     do {
                         return try $0.withRandomPrefixLength(randomPrefixLength)
                     } catch {
-                        log.warning("Could not prepend random prefix: \(error)")
+
                         return nil
                     }
                 }
@@ -648,149 +648,149 @@ extension OpenVPN.Configuration {
             guard let remotes = remotes else {
                 fatalError("No remotes set")
             }
-            log.info("\tRemotes: \(remotes)")
+
         }
 
         if !isLocal {
-            log.info("\tIPv4: \(ipv4?.description ?? "not configured")")
-            log.info("\tIPv6: \(ipv6?.description ?? "not configured")")
+
+
         }
         if let routes = routes4 {
-            log.info("\tRoutes (IPv4): \(routes)")
+
         }
         if let routes = routes6 {
-            log.info("\tRoutes (IPv6): \(routes)")
+
         }
 
         if let cipher = cipher {
-            log.info("\tCipher: \(cipher)")
+
         } else if isLocal {
-            log.info("\tCipher: \(fallbackCipher)")
+
         }
         if let digest = digest {
-            log.info("\tDigest: \(digest)")
+
         } else if isLocal {
-            log.info("\tDigest: \(fallbackDigest)")
+
         }
         if let compressionFraming = compressionFraming {
-            log.info("\tCompression framing: \(compressionFraming)")
+
         } else if isLocal {
-            log.info("\tCompression framing: \(fallbackCompressionFraming)")
+
         }
         if let compressionAlgorithm = compressionAlgorithm {
-            log.info("\tCompression algorithm: \(compressionAlgorithm)")
+
         } else if isLocal {
-            log.info("\tCompression algorithm: \(fallbackCompressionAlgorithm)")
+
         }
 
         if isLocal {
-            log.info("\tUsername authentication: \(authUserPass ?? false)")
+
             if let _ = clientCertificate {
-                log.info("\tClient verification: enabled")
+
             } else {
-                log.info("\tClient verification: disabled")
+
             }
             if let tlsWrap = tlsWrap {
-                log.info("\tTLS wrapping: \(tlsWrap.strategy)")
+
             } else {
-                log.info("\tTLS wrapping: disabled")
+
             }
             if let tlsSecurityLevel = tlsSecurityLevel {
-                log.info("\tTLS security level: \(tlsSecurityLevel)")
+
             } else {
-                log.info("\tTLS security level: default")
+
             }
         }
 
         if let keepAliveSeconds = keepAliveInterval, keepAliveSeconds > 0 {
-            log.info("\tKeep-alive interval: \(keepAliveSeconds.asTimeString)")
+
         } else if isLocal {
-            log.info("\tKeep-alive interval: never")
+
         }
         if let keepAliveTimeoutSeconds = keepAliveTimeout, keepAliveTimeoutSeconds > 0 {
-            log.info("\tKeep-alive timeout: \(keepAliveTimeoutSeconds.asTimeString)")
+
         } else if isLocal {
-            log.info("\tKeep-alive timeout: never")
+
         }
         if let renegotiatesAfterSeconds = renegotiatesAfter, renegotiatesAfterSeconds > 0 {
-            log.info("\tRenegotiation: \(renegotiatesAfterSeconds.asTimeString)")
+
         } else if isLocal {
-            log.info("\tRenegotiation: never")
+
         }
         if checksEKU ?? false {
-            log.info("\tServer EKU verification: enabled")
+
         } else if isLocal {
-            log.info("\tServer EKU verification: disabled")
+
         }
         if checksSANHost ?? false {
-            log.info("\tHost SAN verification: enabled (\(sanHost ?? "-"))")
+
         } else if isLocal {
-            log.info("\tHost SAN verification: disabled")
+
         }
 
         if randomizeEndpoint ?? false {
-            log.info("\tRandomize endpoint: true")
+
         }
         if randomizeHostnames ?? false {
-            log.info("\tRandomize hostnames: true")
+
         }
 
         if let routingPolicies = routingPolicies {
-            log.info("\tGateway: \(routingPolicies.map(\.rawValue))")
+
         } else if isLocal {
-            log.info("\tGateway: not configured")
+
         }
 
         switch dnsProtocol {
         case .https:
             if let dnsHTTPSURL = dnsHTTPSURL {
-                log.info("\tDNS over HTTPS: \(dnsHTTPSURL.maskedDescription)")
+
             } else if isLocal {
-                log.info("\tDNS: not configured")
+
             }
 
         case .tls:
             if let dnsTLSServerName = dnsTLSServerName {
-                log.info("\tDNS over TLS: \(dnsTLSServerName.maskedDescription)")
+
             } else if isLocal {
-                log.info("\tDNS: not configured")
+
             }
 
         default:
             if let dnsServers = dnsServers, !dnsServers.isEmpty {
-                log.info("\tDNS: \(dnsServers.maskedDescription)")
+
             } else if isLocal {
-                log.info("\tDNS: not configured")
+
             }
         }
         if let dnsDomain = dnsDomain, !dnsDomain.isEmpty {
-            log.info("\tDNS domain: \(dnsDomain.maskedDescription)")
+
         }
         if let searchDomains = searchDomains, !searchDomains.isEmpty {
-            log.info("\tSearch domains: \(searchDomains.maskedDescription)")
+
         }
 
         if let httpProxy = httpProxy {
-            log.info("\tHTTP proxy: \(httpProxy.maskedDescription)")
+
         }
         if let httpsProxy = httpsProxy {
-            log.info("\tHTTPS proxy: \(httpsProxy.maskedDescription)")
+
         }
         if let proxyAutoConfigurationURL = proxyAutoConfigurationURL {
-            log.info("\tPAC: \(proxyAutoConfigurationURL)")
+
         }
         if let proxyBypassDomains = proxyBypassDomains {
-            log.info("\tProxy bypass domains: \(proxyBypassDomains.maskedDescription)")
+
         }
 
         if let mtu = mtu {
-            log.info("\tMTU: \(mtu)")
+
         } else if isLocal {
-            log.info("\tMTU: default")
+
         }
 
         if isLocal, let noPullMask = noPullMask {
-            log.info("\tNot pulled: \(noPullMask.map(\.rawValue))")
+
         }
     }
 }

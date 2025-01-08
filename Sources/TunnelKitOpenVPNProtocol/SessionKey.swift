@@ -108,7 +108,7 @@ extension OpenVPN {
 
         func encrypt(packets: [Data]) throws -> [Data]? {
             guard let dataPath = dataPath else {
-                log.warning("Data: Set dataPath first")
+
                 return nil
             }
             return try dataPath.encryptPackets(packets, key: id)
@@ -116,13 +116,13 @@ extension OpenVPN {
 
         func decrypt(packets: [Data]) throws -> [Data]? {
             guard let dataPath = dataPath else {
-                log.warning("Data: Set dataPath first")
+
                 return nil
             }
             var keepAlive = false
             let decrypted = try dataPath.decryptPackets(packets, keepAlive: &keepAlive)
             if keepAlive {
-                log.debug("Data: Received ping, do nothing")
+
             }
             return decrypted
         }

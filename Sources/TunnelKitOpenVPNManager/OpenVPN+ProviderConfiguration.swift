@@ -82,11 +82,11 @@ extension OpenVPN {
 
         public func print() {
             if let versionIdentifier = versionIdentifier {
-                log.info("Tunnel version: \(versionIdentifier)")
+
             }
-            log.info("Debug: \(shouldDebug)")
-            log.info("Masks private data: \(masksPrivateData)")
-            log.info("Local options:")
+
+
+
             configuration.print(isLocal: true)
         }
     }
@@ -234,7 +234,7 @@ extension UserDefaults {
                 let cfg = try decoder.decode(OpenVPN.Configuration.self, from: raw)
                 return cfg
             } catch {
-                log.error("Unable to decode server configuration: \(error)")
+
                 return nil
             }
         }
@@ -247,7 +247,7 @@ extension UserDefaults {
                 let raw = try encoder.encode(newValue)
                 set(raw, forKey: OpenVPN.ProviderConfiguration.Keys.serverConfiguration.rawValue)
             } catch {
-                log.error("Unable to encode server configuration: \(error)")
+
             }
         }
     }

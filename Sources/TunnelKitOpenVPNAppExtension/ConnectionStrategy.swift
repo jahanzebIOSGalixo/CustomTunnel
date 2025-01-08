@@ -76,15 +76,14 @@ class ConnectionStrategy {
         guard let remote = currentRemote else {
             return false
         }
-        log.debug("Try next endpoint in current remote: \(remote.maskedDescription)")
+
         if remote.nextEndpoint() {
             return true
         }
 
-        log.debug("Exhausted endpoints, try next remote")
         currentRemoteIndex += 1
         guard let _ = currentRemote else {
-            log.debug("Exhausted remotes, giving up")
+
             return false
         }
         return true
@@ -100,22 +99,21 @@ class ConnectionStrategy {
             return
         }
         if remote.isResolved, let endpoint = remote.currentEndpoint {
-            log.debug("Pick current endpoint: \(endpoint.maskedDescription)")
+
             let socket = provider.createSocket(to: endpoint)
             completionHandler(.success(socket))
             return
         }
 
-        log.debug("No resolved endpoints, will resort to DNS resolution")
-        log.debug("DNS resolve address: \(remote.maskedDescription)")
+
 
         remote.resolve(timeout: timeout, queue: queue) {
             guard let endpoint = remote.currentEndpoint else {
-                log.error("No endpoints available")
+
                 completionHandler(.failure(.dnsFailure))
                 return
             }
-            log.debug("Pick current endpoint: \(endpoint.maskedDescription)")
+
             let socket = provider.createSocket(to: endpoint)
             completionHandler(.success(socket))
         }

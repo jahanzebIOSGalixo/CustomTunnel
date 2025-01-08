@@ -63,7 +63,6 @@ extension OpenVPN.ControlChannel {
             let key = packet[offset] & 0b111
             offset += PacketOpcodeLength
 
-            log.debug("Control: Try read packet with code \(code) and key \(key)")
 
             guard end >= offset + PacketSessionIdLength else {
                 throw OpenVPNError.controlChannel(message: "Missing sessionId")
@@ -209,7 +208,7 @@ extension OpenVPN.ControlChannel {
             do {
                 return try plain.deserialize(data: authPacket, start: authLength, end: nil)
             } catch {
-                log.error("Control: Channel failure \(error)")
+
                 throw error
             }
         }
@@ -296,7 +295,7 @@ extension OpenVPN.ControlChannel {
             do {
                 return try plain.deserialize(data: decryptedPacket, start: 0, end: nil)
             } catch {
-                log.error("Control: Channel failure \(error)")
+
                 throw error
             }
         }

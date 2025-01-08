@@ -229,11 +229,10 @@ public class OpenVPNSession: Session {
 
     public func setLink(_ link: LinkInterface) {
         guard self.link == nil else {
-            log.warning("Link interface already set!")
+
             return
         }
 
-        log.debug("Starting VPN session")
 
         // WARNING: runs in notification source queue (we know it's "queue", but better be safe than sorry)
         tlsObserver = NotificationCenter.default.addObserver(forName: .TLSBoxPeerVerificationError, object: nil, queue: nil) { (notification) in
@@ -256,21 +255,20 @@ public class OpenVPNSession: Session {
 
     public func rebindLink(_ link: LinkInterface) {
         guard let _ = pushReply?.options.peerId else {
-            log.warning("Session doesn't support link rebinding!")
+
             return
         }
 
         isStopping = false
         stopError = nil
 
-        log.debug("Rebinding VPN session to a new link")
         self.link = link
         loopLink()
     }
 
     public func setTunnel(tunnel: TunnelInterface) {
         guard self.tunnel == nil else {
-            log.warning("Tunnel interface already set!")
+
             return
         }
         self.tunnel = tunnel
@@ -290,7 +288,7 @@ public class OpenVPNSession: Session {
 
     public func shutdown(error: Error?) {
         guard !isStopping else {
-            log.warning("Ignore stop request, already stopping!")
+
             return
         }
         deferStop(.shutdown, error)
@@ -298,7 +296,7 @@ public class OpenVPNSession: Session {
 
     public func reconnect(error: Error?) {
         guard !isStopping else {
-            log.warning("Ignore stop request, already stopping!")
+
             return
         }
         deferStop(.reconnect, error)
@@ -306,7 +304,7 @@ public class OpenVPNSession: Session {
 
     // Ruby: cleanup
     public func cleanup() {
-        log.info("Cleaning up...")
+
 
         if let observer = tlsObserver {
             NotificationCenter.default.removeObserver(observer)
@@ -385,11 +383,11 @@ public class OpenVPNSession: Session {
         let loopedLink = link
         loopedLink?.setReadHandler(queue: queue) { [weak self] (newPackets, error) in
             guard self?.link === loopedLink else {
-                log.warning("Ignoring read from outdated LINK")
+
                 return
             }
             if let error = error {
-                log.error("Failed LINK read: \(error)")
+
 
                 // XXX: why isn't the tunnel shutting down at this point?
                 return
@@ -408,7 +406,7 @@ public class OpenVPNSession: Session {
     private func loopTunnel() {
         tunnel?.setReadHandler(queue: queue) { [weak self] (newPackets, error) in
             if let error = error {
-                log.error("Failed TUN read: \(error)")
+
                 return
             }
 
@@ -422,7 +420,7 @@ public class OpenVPNSession: Session {
     // Ruby: recv_link
     private func receiveLink(packets: [Data]) {
         guard shouldHandlePackets() else {
-            log.warning("Discarding \(packets.count) LINK packets (should not handle)")
+
             return
         }
 
@@ -434,12 +432,12 @@ public class OpenVPNSession: Session {
 //            log.verbose("Received data from LINK (\(packet.count) bytes): \(packet.toHex())")
 
             guard let firstByte = packet.first else {
-                log.warning("Dropped malformed packet (missing opcode)")
+
                 continue
             }
             let codeValue = firstByte >> 3
             guard let code = PacketCode(rawValue: codeValue) else {
-                log.warning("Dropped malformed packet (unknown code: \(codeValue))")
+
                 continue
             }
 //            log.verbose("Parsed packet with code \(code)")
@@ -447,7 +445,7 @@ public class OpenVPNSession: Session {
             var offset = 1
             if code == .dataV2 {
                 guard packet.count >= offset + PacketPeerIdLength else {
-                    log.warning("Dropped malformed packet (missing peerId)")
+
                     continue
                 }
                 offset += PacketPeerIdLength
@@ -456,7 +454,7 @@ public class OpenVPNSession: Session {
             if (code == .dataV1) || (code == .dataV2) {
                 let key = firstByte & 0b111
                 guard let _ = keys[key] else {
-                    log.warning("Key with id \(key) not found")
+
 //                    deferStop(.shutdown, OpenVPNError.badKey)
                     continue // JK: This used to be return, but we'd see connections that would stay in Connecting… state forever
                 }
@@ -478,7 +476,7 @@ public class OpenVPNSession: Session {
                 }
                 controlPacket = parsedPacket
             } catch {
-                log.warning("Dropped malformed packet: \(error)")
+
                 continue
 //                deferStop(.shutdown, e)
 //                return
@@ -512,7 +510,7 @@ public class OpenVPNSession: Session {
         // send decrypted packets to tunnel all at once
         for (keyId, dataPackets) in dataPacketsByKey {
             guard let sessionKey = keys[keyId] else {
-                log.warning("Accounted a data packet for which the cryptographic key hadn't been found")
+
                 continue
             }
             handleDataPackets(dataPackets, key: sessionKey)
@@ -522,7 +520,7 @@ public class OpenVPNSession: Session {
     // Ruby: recv_tun
     private func receiveTunnel(packets: [Data]) {
         guard shouldHandlePackets() else {
-            log.warning("Discarding \(packets.count) TUN packets (should not handle)")
+
             return
         }
         sendDataPackets(packets)
@@ -542,7 +540,7 @@ public class OpenVPNSession: Session {
 
         // is keep-alive enabled?
         if let _ = keepAliveInterval {
-            log.debug("Send ping")
+
             sendDataPackets([OpenVPN.DataPacket.pingString])
             lastPing.outbound = Date()
         }
@@ -555,13 +553,13 @@ public class OpenVPNSession: Session {
         let interval: TimeInterval
         if let keepAliveInterval = keepAliveInterval {
             interval = keepAliveInterval
-            log.verbose("Schedule ping after \(interval.asTimeString)")
+
         } else {
             interval = CoreConfiguration.OpenVPN.pingTimeoutCheckInterval
-            log.verbose("Schedule ping timeout check after \(interval.asTimeString)")
+
         }
         queue.asyncAfter(deadline: .now() + interval) { [weak self] in
-            log.verbose("Running ping block")
+
             self?.ping()
         }
     }
@@ -580,7 +578,7 @@ public class OpenVPNSession: Session {
 
     // Ruby: hard_reset
     private func hardReset() {
-        log.debug("Send hard reset")
+
 
         resetControlChannel(forNewSession: true)
         continuatedPushReplyMessage = nil
@@ -588,7 +586,7 @@ public class OpenVPNSession: Session {
         negotiationKeyIdx = 0
         let newKey = OpenVPN.SessionKey(id: UInt8(negotiationKeyIdx), timeout: CoreConfiguration.OpenVPN.negotiationTimeout)
         keys[negotiationKeyIdx] = newKey
-        log.debug("Negotiation key index is \(negotiationKeyIdx)")
+
 
         let payload = hardResetPayload() ?? Data()
         negotiationKey.state = .hardReset
@@ -602,17 +600,17 @@ public class OpenVPNSession: Session {
     private func hardResetPayload() -> Data? {
         guard !(configuration.usesPIAPatches ?? false) else {
             guard let _ = configuration.ca else {
-                log.error("Configuration doesn't have a CA")
+
                 return nil
             }
             let caMD5: String
             do {
                 caMD5 = try TLSBox.md5(forCertificatePath: caURL.path)
             } catch {
-                log.error("CA MD5 could not be computed, skipping custom HARD_RESET")
+
                 return nil
             }
-            log.debug("CA MD5 is: \(caMD5)")
+
             return try? PIAHardReset(
                 caMd5Digest: caMD5,
                 cipher: configuration.fallbackCipher,
@@ -625,20 +623,20 @@ public class OpenVPNSession: Session {
     // Ruby: soft_reset
     private func softReset(isServerInitiated: Bool) {
         guard !isRenegotiating else {
-            log.warning("Renegotiation already in progress")
+
             return
         }
         if isServerInitiated {
-            log.debug("Handle soft reset")
+
         } else {
-            log.debug("Send soft reset")
+
         }
 
         resetControlChannel(forNewSession: false)
         negotiationKeyIdx = max(1, (negotiationKeyIdx + 1) % OpenVPN.ProtocolMacros.numberOfKeys)
         let newKey = OpenVPN.SessionKey(id: UInt8(negotiationKeyIdx), timeout: CoreConfiguration.OpenVPN.softNegotiationTimeout)
         keys[negotiationKeyIdx] = newKey
-        log.debug("Negotiation key index is \(negotiationKeyIdx)")
+
 
         negotiationKey.state = .softReset
         isRenegotiating = true
@@ -650,7 +648,7 @@ public class OpenVPNSession: Session {
 
     // Ruby: on_tls_connect
     private func onTLSConnect() {
-        log.debug("TLS.connect: Handshake is complete")
+
 
         negotiationKey.controlState = .preAuth
 
@@ -668,15 +666,14 @@ public class OpenVPNSession: Session {
             cipherTextOut = try negotiationKey.tls.pullCipherText()
         } catch {
             if let nativeError = error.asNativeOpenVPNError {
-                log.error("TLS.auth: Failed pulling ciphertext (error: \(nativeError))")
+
                 shutdown(error: nativeError)
                 return
             }
-            log.verbose("TLS.auth: Still can't pull ciphertext")
+
             return
         }
 
-        log.debug("TLS.auth: Pulled ciphertext (\(cipherTextOut.count) bytes)")
         enqueueControlPackets(code: .controlV1, key: negotiationKey.id, payload: cipherTextOut)
     }
 
@@ -689,7 +686,6 @@ public class OpenVPNSession: Session {
             return
         }
 
-        log.debug("TLS.ifconfig: Put plaintext (PUSH_REQUEST)")
         try? negotiationKey.tls.putPlainText("PUSH_REQUEST\0")
 
         let cipherTextOut: Data
@@ -697,15 +693,14 @@ public class OpenVPNSession: Session {
             cipherTextOut = try negotiationKey.tls.pullCipherText()
         } catch {
             if let nativeError = error.asNativeOpenVPNError {
-                log.error("TLS.auth: Failed pulling ciphertext (error: \(nativeError))")
+
                 shutdown(error: nativeError)
                 return
             }
-            log.verbose("TLS.ifconfig: Still can't pull ciphertext")
+
             return
         }
 
-        log.debug("TLS.ifconfig: Send pulled ciphertext (\(cipherTextOut.count) bytes)")
         enqueueControlPackets(code: .controlV1, key: negotiationKey.id, payload: cipherTextOut)
 
         if isRenegotiating {
@@ -725,7 +720,7 @@ public class OpenVPNSession: Session {
 
         let elapsed = -negotiationKey.startTime.timeIntervalSinceNow
         if elapsed > renegotiatesAfter {
-            log.debug("Renegotiating after \(elapsed.asTimeString)")
+
             softReset(isServerInitiated: false)
         }
     }
@@ -743,13 +738,13 @@ public class OpenVPNSession: Session {
     // Ruby: handle_ctrl_pkt
     private func handleControlPacket(_ packet: ControlPacket) {
         guard packet.key == negotiationKey.id else {
-            log.error("Bad key in control packet (\(packet.key) != \(negotiationKey.id))")
+
 //            deferStop(.shutdown, OpenVPNError.badKey)
             return
         }
 
         guard let _ = configuration.ca else {
-            log.error("Configuration doesn't have a CA")
+
             return
         }
 
@@ -761,19 +756,18 @@ public class OpenVPNSession: Session {
                 controlChannel.remoteSessionId = packet.sessionId
             }
             guard let remoteSessionId = controlChannel.remoteSessionId else {
-                log.error("No remote sessionId (never set)")
+
                 deferStop(.shutdown, OpenVPNError.missingSessionId)
                 return
             }
             guard packet.sessionId == remoteSessionId else {
-                log.error("Packet session mismatch (\(packet.sessionId.toHex()) != \(remoteSessionId.toHex()))")
+
                 deferStop(.shutdown, OpenVPNError.sessionMismatch)
                 return
             }
 
             negotiationKey.state = .tls
 
-            log.debug("Start TLS handshake")
 
             let tls = TLSBox(
                 caPath: caURL.path,
@@ -799,7 +793,7 @@ public class OpenVPNSession: Session {
                 cipherTextOut = try negotiationKey.tls.pullCipherText()
             } catch {
                 if let nativeError = error.asNativeOpenVPNError {
-                    log.error("TLS.connect: Failed pulling ciphertext (error: \(nativeError))")
+
                     shutdown(error: nativeError)
                     return
                 }
@@ -807,42 +801,40 @@ public class OpenVPNSession: Session {
                 return
             }
 
-            log.debug("TLS.connect: Pulled ciphertext (\(cipherTextOut.count) bytes)")
             enqueueControlPackets(code: .controlV1, key: negotiationKey.id, payload: cipherTextOut)
         }
         // exchange TLS ciphertext
         else if (packet.code == .controlV1) && (negotiationKey.state == .tls) {
             guard let remoteSessionId = controlChannel.remoteSessionId else {
-                log.error("No remote sessionId found in packet (control packets before server HARD_RESET)")
+
                 deferStop(.shutdown, OpenVPNError.missingSessionId)
                 return
             }
             guard packet.sessionId == remoteSessionId else {
-                log.error("Packet session mismatch (\(packet.sessionId.toHex()) != \(remoteSessionId.toHex()))")
+
                 deferStop(.shutdown, OpenVPNError.sessionMismatch)
                 return
             }
 
             guard let cipherTextIn = packet.payload else {
-                log.warning("TLS.connect: Control packet with empty payload?")
+
                 return
             }
 
-            log.debug("TLS.connect: Put received ciphertext (\(cipherTextIn.count) bytes)")
             try? negotiationKey.tls.putCipherText(cipherTextIn)
 
             let cipherTextOut: Data
             do {
                 cipherTextOut = try negotiationKey.tls.pullCipherText()
-                log.debug("TLS.connect: Send pulled ciphertext (\(cipherTextOut.count) bytes)")
+
                 enqueueControlPackets(code: .controlV1, key: negotiationKey.id, payload: cipherTextOut)
             } catch {
                 if let nativeError = error.asNativeOpenVPNError {
-                    log.error("TLS.connect: Failed pulling ciphertext (error: \(nativeError))")
+
                     shutdown(error: nativeError)
                     return
                 }
-                log.verbose("TLS.connect: No available ciphertext to pull")
+
             }
 
             if negotiationKey.shouldOnTLSConnect() {
@@ -866,9 +858,9 @@ public class OpenVPNSession: Session {
         }
 
         if CoreConfiguration.logsSensitiveData {
-            log.debug("Pulled plain control data (\(data.count) bytes): \(data.toHex())")
+
         } else {
-            log.debug("Pulled plain control data (\(data.count) bytes)")
+
         }
 
         auth.appendControlData(data)
@@ -891,9 +883,9 @@ public class OpenVPNSession: Session {
 
         for message in auth.parseMessages() {
             if CoreConfiguration.logsSensitiveData {
-                log.debug("Parsed control message (\(message.count) bytes): \"\(message)\"")
+
             } else {
-                log.debug("Parsed control message (\(message.count) bytes)")
+
             }
             handleControlMessage(message)
         }
@@ -902,7 +894,7 @@ public class OpenVPNSession: Session {
     // Ruby: handle_ctrl_msg
     private func handleControlMessage(_ message: String) {
         if CoreConfiguration.logsSensitiveData {
-            log.debug("Received control message: \"\(message)\"")
+
         }
 
         // disconnect on authentication failure
@@ -910,7 +902,7 @@ public class OpenVPNSession: Session {
 
             // XXX: retry without client options
             if authenticator?.withLocalOptions ?? false {
-                log.warning("Authentication failure, retrying without local options")
+
                 withLocalOptions = false
                 deferStop(.reconnect, OpenVPNError.badCredentials)
                 return
@@ -922,7 +914,7 @@ public class OpenVPNSession: Session {
 
         // disconnect on remote server restart (--explicit-exit-notify)
         guard !message.hasPrefix("RESTART") else {
-            log.debug("Disconnecting due to server shutdown")
+
             deferStop(.shutdown, OpenVPNError.serverShutdown)
             return
         }
@@ -944,7 +936,7 @@ public class OpenVPNSession: Session {
                 return
             }
             reply = optionalReply
-            log.debug("Received PUSH_REPLY: \"\(reply)\"")
+
 
             if let framing = reply.options.compressionFraming, let compression = reply.options.compressionAlgorithm {
                 switch compression {
@@ -953,12 +945,12 @@ public class OpenVPNSession: Session {
 
                 case .LZO:
                     if !LZOFactory.isSupported() {
-                        log.error("Server has LZO compression enabled and this was not built into the library (framing=\(framing))")
+
                         throw OpenVPNError.serverCompression
                     }
 
                 case .other:
-                    log.error("Server has non-LZO compression enabled and this is currently unsupported (framing=\(framing))")
+
                     throw OpenVPNError.serverCompression
                 }
             }
@@ -1012,7 +1004,7 @@ public class OpenVPNSession: Session {
     // Ruby: q_ctrl
     private func enqueueControlPackets(code: PacketCode, key: UInt8, payload: Data) {
         guard let _ = link else {
-            log.warning("Not writing to LINK, interface is down")
+
             return
         }
 
@@ -1026,12 +1018,12 @@ public class OpenVPNSession: Session {
         do {
             rawList = try controlChannel.writeOutboundPackets()
         } catch {
-            log.warning("Failed control packet serialization: \(error)")
+
             deferStop(.shutdown, error)
             return
         }
         for raw in rawList {
-            log.debug("Send control packet (\(raw.count) bytes): \(raw.toHex())")
+
         }
 
         // WARNING: runs in Network.framework queue
@@ -1039,11 +1031,11 @@ public class OpenVPNSession: Session {
         link?.writePackets(rawList) { [weak self] (error) in
             self?.queue.sync {
                 guard self?.link === writeLink else {
-                    log.warning("Ignoring write from outdated LINK")
+
                     return
                 }
                 if let error = error {
-                    log.error("Failed LINK write during control flush: \(error)")
+
                     self?.deferStop(.shutdown, OpenVPNError.failedLinkWrite)
                     return
                 }
@@ -1070,35 +1062,35 @@ public class OpenVPNSession: Session {
         }
 
         if CoreConfiguration.logsSensitiveData {
-            log.debug("Set up encryption from the following components:")
-            log.debug("\tpreMaster: \(auth.preMaster.toHex())")
-            log.debug("\trandom1: \(auth.random1.toHex())")
-            log.debug("\trandom2: \(auth.random2.toHex())")
-            log.debug("\tserverRandom1: \(serverRandom1.toHex())")
-            log.debug("\tserverRandom2: \(serverRandom2.toHex())")
-            log.debug("\tsessionId: \(sessionId.toHex())")
-            log.debug("\tremoteSessionId: \(remoteSessionId.toHex())")
+
+
+
+
+
+
+
+
         } else {
-            log.debug("Set up encryption")
+
         }
 
         let pushedCipher = pushReply.options.cipher
         if let negCipher = pushedCipher {
-            log.info("\tNegotiated cipher: \(negCipher.rawValue)")
+
         }
         let pushedFraming = pushReply.options.compressionFraming
         if let negFraming = pushedFraming {
-            log.info("\tNegotiated compression framing: \(negFraming)")
+
         }
         let pushedCompression = pushReply.options.compressionAlgorithm
         if let negCompression = pushedCompression {
-            log.info("\tNegotiated compression algorithm: \(negCompression)")
+
         }
         if let negPing = pushReply.options.keepAliveInterval {
-            log.info("\tNegotiated keep-alive interval: \(negPing.asTimeString)")
+
         }
         if let negPingRestart = pushReply.options.keepAliveTimeout {
-            log.info("\tNegotiated keep-alive timeout: \(negPingRestart.asTimeString)")
+
         }
 
         let bridge: OpenVPN.EncryptionBridge
@@ -1133,7 +1125,7 @@ public class OpenVPNSession: Session {
         controlChannel.addReceivedDataCount(packets.flatCount)
         do {
             guard let decryptedPackets = try key.decrypt(packets: packets) else {
-                log.warning("Could not decrypt packets, is SessionKey properly configured (dataPath, peerId)?")
+
                 return
             }
             guard !decryptedPackets.isEmpty else {
@@ -1157,7 +1149,7 @@ public class OpenVPNSession: Session {
         }
         do {
             guard let encryptedPackets = try key.encrypt(packets: packets) else {
-                log.warning("Could not encrypt packets, is SessionKey properly configured (dataPath, peerId)?")
+
                 return
             }
             guard !encryptedPackets.isEmpty else {
@@ -1170,11 +1162,11 @@ public class OpenVPNSession: Session {
             link?.writePackets(encryptedPackets) { [weak self] (error) in
                 self?.queue.sync {
                     guard self?.link === writeLink else {
-                        log.warning("Ignoring write from outdated LINK")
+
                         return
                     }
                     if let error = error {
-                        log.error("Data: Failed LINK write during send data: \(error)")
+
                         self?.deferStop(.shutdown, OpenVPNError.failedLinkWrite)
                         return
                     }
@@ -1197,7 +1189,7 @@ public class OpenVPNSession: Session {
 
     // Ruby: send_ack
     private func sendAck(for controlPacket: ControlPacket) {
-        log.debug("Send ack for received packetId \(controlPacket.packetId)")
+
 
         let raw: Data
         do {
@@ -1216,15 +1208,15 @@ public class OpenVPNSession: Session {
         link?.writePacket(raw) { [weak self] (error) in
             self?.queue.sync {
                 guard self?.link === writeLink else {
-                    log.warning("Ignoring write from outdated LINK")
+
                     return
                 }
                 if let error = error {
-                    log.error("Failed LINK write during send ack for packetId \(controlPacket.packetId): \(error)")
+
                     self?.deferStop(.shutdown, OpenVPNError.failedLinkWrite)
                     return
                 }
-                log.debug("Ack successfully written to LINK for packetId \(controlPacket.packetId)")
+
             }
         }
     }
@@ -1274,9 +1266,9 @@ public class OpenVPNSession: Session {
 
     private func doShutdown(error: Error?) {
         if let error = error {
-            log.error("Trigger shutdown (error: \(error))")
+
         } else {
-            log.info("Trigger shutdown on request")
+
         }
         stopError = error
         delegate?.sessionDidStop(self, withError: error, shouldReconnect: false)
@@ -1284,9 +1276,9 @@ public class OpenVPNSession: Session {
 
     private func doReconnect(error: Error?) {
         if let error = error {
-            log.error("Trigger reconnection (error: \(error))")
+
         } else {
-            log.info("Trigger reconnection on request")
+
         }
         stopError = error
         delegate?.sessionDidStop(self, withError: error, shouldReconnect: true)

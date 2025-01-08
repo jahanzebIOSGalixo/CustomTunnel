@@ -41,7 +41,7 @@ extension OpenVPN {
         var remoteSessionId: Data? {
             didSet {
                 if let id = remoteSessionId {
-                    log.debug("Control: Remote sessionId is \(id.toHex())")
+
                 }
             }
         }
@@ -95,13 +95,13 @@ extension OpenVPN {
         func readInboundPacket(withData data: Data, offset: Int) throws -> ControlPacket {
             do {
                 let packet = try serializer.deserialize(data: data, start: offset, end: nil)
-                log.debug("Control: Read packet \(packet)")
+
                 if let ackIds = packet.ackIds as? [UInt32], let ackRemoteSessionId = packet.ackRemoteSessionId {
                     try readAcks(ackIds, acksRemoteSessionId: ackRemoteSessionId)
                 }
                 return packet
             } catch {
-                log.error("Control: Channel failure \(error)")
+
                 throw error
             }
         }
@@ -153,9 +153,9 @@ extension OpenVPN {
             // packet count
             let packetCount = currentPacketId.outbound - oldIdOut
             if packetCount > 1 {
-                log.debug("Control: Enqueued \(packetCount) packets [\(oldIdOut)-\(currentPacketId.outbound - 1)]")
+
             } else {
-                log.debug("Control: Enqueued 1 packet [\(oldIdOut)]")
+
             }
         }
 
@@ -165,12 +165,11 @@ extension OpenVPN {
                 if let sentDate = packet.sentDate {
                     let timeAgo = -sentDate.timeIntervalSinceNow
                     guard timeAgo >= CoreConfiguration.OpenVPN.retransmissionLimit else {
-                        log.debug("Control: Skip writing packet with packetId \(packet.packetId) (sent on \(sentDate), \(timeAgo) seconds ago)")
+
                         continue
                     }
                 }
 
-                log.debug("Control: Write control packet \(packet)")
 
                 let raw = try serializer.serialize(packet: packet)
                 rawList.append(raw)
@@ -193,7 +192,7 @@ extension OpenVPN {
                 throw OpenVPNError.missingSessionId
             }
             guard acksRemoteSessionId == sessionId else {
-                log.error("Control: Ack session mismatch (\(acksRemoteSessionId.toHex()) != \(sessionId.toHex()))")
+
                 throw OpenVPNError.sessionMismatch
             }
 
@@ -213,7 +212,7 @@ extension OpenVPN {
                 throw OpenVPNError.missingSessionId
             }
             let packet = ControlPacket(key: key, sessionId: sessionId, ackIds: ackPacketIds as [NSNumber], ackRemoteSessionId: ackRemoteSessionId)
-            log.debug("Control: Write ack packet \(packet)")
+
             return try serializer.serialize(packet: packet)
         }
 

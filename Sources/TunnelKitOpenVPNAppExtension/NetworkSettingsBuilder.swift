@@ -170,7 +170,7 @@ extension NetworkSettingsBuilder {
             let defaultRoute = NEIPv4Route.default()
             defaultRoute.gatewayAddress = ipv4.defaultGateway
             neRoutes.append(defaultRoute)
-            log.info("Routing.IPv4: Setting default gateway to \(ipv4.defaultGateway)")
+
         }
 
         for r in allRoutes4 {
@@ -178,7 +178,7 @@ extension NetworkSettingsBuilder {
             let gw = r.gateway ?? ipv4.defaultGateway
             ipv4Route.gatewayAddress = gw
             neRoutes.append(ipv4Route)
-            log.info("Routing.IPv4: Adding route \(r.destination)/\(r.mask) -> \(gw)")
+
         }
 
         ipv4Settings.includedRoutes = neRoutes
@@ -217,7 +217,7 @@ extension NetworkSettingsBuilder {
             let defaultRoute = NEIPv6Route.default()
             defaultRoute.gatewayAddress = ipv6.defaultGateway
             neRoutes.append(defaultRoute)
-            log.info("Routing.IPv6: Setting default gateway to \(ipv6.defaultGateway)")
+
         }
 
         for r in allRoutes6 {
@@ -225,7 +225,7 @@ extension NetworkSettingsBuilder {
             let gw = r.gateway ?? ipv6.defaultGateway
             ipv6Route.gatewayAddress = gw
             neRoutes.append(ipv6Route)
-            log.info("Routing.IPv6: Adding route \(r.destination)/\(r.prefixLength) -> \(gw)")
+
         }
 
         ipv6Settings.includedRoutes = neRoutes
@@ -260,8 +260,8 @@ extension NetworkSettingsBuilder {
             let specific = NEDNSOverHTTPSSettings(servers: dnsServers)
             specific.serverURL = serverURL
             dnsSettings = specific
-            log.info("DNS over HTTPS: Using servers \(dnsServers)")
-            log.info("\tHTTPS URL: \(serverURL)")
+
+
 
         case .tls:
             let dnsServers = localOptions.dnsServers ?? []
@@ -271,8 +271,8 @@ extension NetworkSettingsBuilder {
             let specific = NEDNSOverTLSSettings(servers: dnsServers)
             specific.serverName = serverName
             dnsSettings = specific
-            log.info("DNS over TLS: Using servers \(dnsServers)")
-            log.info("\tTLS server name: \(serverName)")
+
+
 
         default:
             break
@@ -282,15 +282,15 @@ extension NetworkSettingsBuilder {
         if dnsSettings == nil {
             let dnsServers = allDNSServers
             if !dnsServers.isEmpty {
-                log.info("DNS: Using servers \(dnsServers)")
+
                 dnsSettings = NEDNSSettings(servers: dnsServers)
             } else {
 //                log.warning("DNS: No servers provided, using fall-back servers: \(fallbackDNSServers)")
 //                dnsSettings = NEDNSSettings(servers: fallbackDNSServers)
                 if isGateway {
-                    log.warning("DNS: No settings provided")
+
                 } else {
-                    log.warning("DNS: No settings provided, using current network settings")
+
                 }
             }
         }
@@ -301,13 +301,13 @@ extension NetworkSettingsBuilder {
         }
 
         if let domain = dnsDomain {
-            log.info("DNS: Using domain: \(domain)")
+
             dnsSettings?.domainName = domain
         }
 
         let searchDomains = allDNSSearchDomains
         if !searchDomains.isEmpty {
-            log.info("DNS: Using search domains: \(searchDomains)")
+
             dnsSettings?.searchDomains = searchDomains
             if !isGateway {
                 dnsSettings?.matchDomains = dnsSettings?.searchDomains
@@ -328,7 +328,7 @@ extension NetworkSettingsBuilder {
             proxySettings = NEProxySettings()
             proxySettings?.httpsServer = httpsProxy.neProxy()
             proxySettings?.httpsEnabled = true
-            log.info("Routing: Setting HTTPS proxy \(httpsProxy.address):\(httpsProxy.port)")
+
         }
         if let httpProxy = pullProxy ? (remoteOptions.httpProxy ?? localOptions.httpProxy) : localOptions.httpProxy {
             if proxySettings == nil {
@@ -336,7 +336,7 @@ extension NetworkSettingsBuilder {
             }
             proxySettings?.httpServer = httpProxy.neProxy()
             proxySettings?.httpEnabled = true
-            log.info("Routing: Setting HTTP proxy \(httpProxy.address):\(httpProxy.port)")
+
         }
         if let pacURL = pullProxy ? (remoteOptions.proxyAutoConfigurationURL ?? localOptions.proxyAutoConfigurationURL) : localOptions.proxyAutoConfigurationURL {
             if proxySettings == nil {
@@ -344,7 +344,7 @@ extension NetworkSettingsBuilder {
             }
             proxySettings?.proxyAutoConfigurationURL = pacURL
             proxySettings?.autoProxyConfigurationEnabled = true
-            log.info("Routing: Setting PAC \(pacURL)")
+
         }
 
         // only set if there is a proxy (proxySettings set to non-nil above)
@@ -352,7 +352,7 @@ extension NetworkSettingsBuilder {
             let bypass = allProxyBypassDomains
             if !bypass.isEmpty {
                 proxySettings?.exceptionList = bypass
-                log.info("Routing: Setting proxy by-pass list: \(bypass)")
+
             }
         }
         return proxySettings

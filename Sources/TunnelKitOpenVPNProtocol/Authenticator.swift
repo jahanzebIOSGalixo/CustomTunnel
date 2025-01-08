@@ -145,7 +145,7 @@ extension OpenVPN {
             } else {
                 optsString = "V0 UNDEF"
             }
-            log.debug("TLS.auth: Local options: \(optsString)")
+
             raw.appendSized(Z(optsString, nullTerminated: true))
 
             // credentials
@@ -165,9 +165,9 @@ extension OpenVPN {
             raw.appendSized(Z(CoreConfiguration.OpenVPN.peerInfo(extra: extra), nullTerminated: true))
 
             if CoreConfiguration.logsSensitiveData {
-                log.debug("TLS.auth: Put plaintext (\(raw.count) bytes): \(raw.toHex())")
+
             } else {
-                log.debug("TLS.auth: Put plaintext (\(raw.count) bytes)")
+
             }
 
             try into.putRawPlainText(raw.bytes, length: raw.count)
@@ -210,13 +210,13 @@ extension OpenVPN {
             offset += serverOptsLength
 
             if CoreConfiguration.logsSensitiveData {
-                log.debug("TLS.auth: Parsed server random: [\(serverRandom1.toHex()), \(serverRandom2.toHex())]")
+
             } else {
-                log.debug("TLS.auth: Parsed server random")
+
             }
 
             if let serverOptsString = serverOpts.nullTerminatedString(fromOffset: 0) {
-                log.debug("TLS.auth: Parsed server options: \"\(serverOptsString)\"")
+
             }
 
             self.serverRandom1 = serverRandom1

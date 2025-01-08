@@ -301,9 +301,8 @@ extension OpenVPN {
             //
             var optXorMethod: XORMethod?
 
-            log.verbose("Configuration file:")
             for line in lines {
-                log.verbose(line)
+
 
                 var isHandled = false
                 var strippedLine = line
