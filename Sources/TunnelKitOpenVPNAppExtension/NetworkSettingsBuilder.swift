@@ -29,7 +29,7 @@ import TunnelKitCore
 import TunnelKitOpenVPNCore
 
 
-//private let log = SwiftyBeaver.self
+
 
 struct NetworkSettingsBuilder {
     let remoteAddress: String

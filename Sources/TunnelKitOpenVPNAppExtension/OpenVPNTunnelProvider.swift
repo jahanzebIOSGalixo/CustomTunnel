@@ -50,7 +50,7 @@ import TunnelKitAppExtension
 import CTunnelKitCore
 import __TunnelKitUtils
 
-//private let log = SwiftyBeaver.self
+
 
 /**
  Provides an all-in-one `NEPacketTunnelProvider` implementation for use in a

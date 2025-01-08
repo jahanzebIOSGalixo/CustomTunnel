@@ -43,7 +43,7 @@ import CoreWLAN
 #endif
 
 
-//private let log = SwiftyBeaver.self
+
 
 /// Observes changes in the current Wi-Fi network.
 public class InterfaceObserver: NSObject {

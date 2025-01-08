@@ -39,7 +39,7 @@ import NetworkExtension
 
 import TunnelKitCore
 
-//private let log = SwiftyBeaver.self
+
 
 /// TCP implementation of a `GenericSocket` via NetworkExtension.
 public class NETCPSocket: NSObject, GenericSocket {

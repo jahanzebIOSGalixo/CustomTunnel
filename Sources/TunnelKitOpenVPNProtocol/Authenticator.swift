@@ -41,7 +41,7 @@ import TunnelKitOpenVPNCore
 import CTunnelKitCore
 import CTunnelKitOpenVPNProtocol
 
-//private let log = SwiftyBeaver.self
+
 
 fileprivate extension ZeroingData {
     func appendSized(_ buf: ZeroingData) {

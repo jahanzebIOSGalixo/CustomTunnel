@@ -27,7 +27,7 @@ import Foundation
 import TunnelKitCore
 
 
-//private let log = SwiftyBeaver.self
+
 
 class ResolvedRemote: CustomStringConvertible {
     let originalEndpoint: Endpoint

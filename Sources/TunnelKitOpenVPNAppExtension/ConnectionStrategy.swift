@@ -42,7 +42,7 @@ import TunnelKitAppExtension
 import TunnelKitOpenVPNCore
 import TunnelKitOpenVPNManager
 
-//private let log = SwiftyBeaver.self
+
 
 class ConnectionStrategy {
     private var remotes: [ResolvedRemote]

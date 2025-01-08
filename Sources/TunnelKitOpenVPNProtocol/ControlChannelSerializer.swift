@@ -30,7 +30,7 @@ import TunnelKitOpenVPNCore
 import CTunnelKitCore
 import CTunnelKitOpenVPNProtocol
 
-//private let log = SwiftyBeaver.self
+
 
 protocol ControlChannelSerializer {
     func reset()
