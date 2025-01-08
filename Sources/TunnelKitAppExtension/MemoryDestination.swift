@@ -35,7 +35,7 @@
 //
 
 import Foundation
-import SwiftyBeaver
+//import SwiftyBeaver
 
 /// Implements a `SwiftyBeaver.BaseDestination` logging to a memory buffer.
 //public class MemoryDestination: BaseDestination, CustomStringConvertible {
