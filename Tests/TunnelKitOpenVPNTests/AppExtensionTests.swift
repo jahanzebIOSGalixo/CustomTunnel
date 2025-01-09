@@ -137,7 +137,7 @@ class AppExtensionTests: XCTestCase {
     }
 
     func testEndpointCycling() {
-        CoreConfiguration.masksPrivateData = false
+        OpenVpnMainConfig.masksPrivateData = false
 
         var builder = OpenVPN.ConfigurationBuilder()
         let hostname = "italy.privateinternetaccess.com"

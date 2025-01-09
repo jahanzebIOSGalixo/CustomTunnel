@@ -3,7 +3,7 @@ import Foundation
 import NetworkExtension
 import TunnelKitCore
 
-public class NEUDP: NSObject, GenericSocket {
+public class NEUDP: NSObject, GalixoSocket {
     private static var linkContext = 0
 
     public let nwSession: NWUDPSession
@@ -29,7 +29,7 @@ public class NEUDP: NSObject, GenericSocket {
         return nwSession.hasBetterPath
     }
 
-    public weak var delegate: GenericSocketDelegate?
+    public weak var delegate: GalixoSocketProtocol?
 
     public func listen(queue: DispatchQueue, activeTimeout: Int) {
         on = false
@@ -57,7 +57,7 @@ public class NEUDP: NSObject, GenericSocket {
         nwSession.cancel()
     }
 
-    public func upgraded() -> GenericSocket? {
+    public func upgraded() -> GalixoSocket? {
         guard nwSession.hasBetterPath else {
             return nil
         }
@@ -73,58 +73,55 @@ public class NEUDP: NSObject, GenericSocket {
         }
 
         queue?.async {
-            self.observeValueInTunnelQueue(forKeyPath: keyPath, of: object, change: change, context: context)
+            self.observeValueQueue(forKeyPath: keyPath, of: object)
         }
     }
 
-    private func observeValueInTunnelQueue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
-
-        guard let impl = object as? NWUDPSession, (impl == self.nwSession) else {
-
-            return
+    private func handleSessionStateChange(session: NWUDPSession) {
+        if let _ = session.resolvedEndpoint {
+            // Handle resolved endpoint logic if necessary
         }
-        guard let keyPath = keyPath else {
-            return
-        }
-        switch keyPath {
-        case #keyPath(NWUDPSession.state):
-            if let resolvedEndpoint = impl.resolvedEndpoint {
 
-            } else {
+        switch session.state {
+        case .ready:
+            guard !on else { return }
+            on = true
+            delegate?.socketDidBecomeActive(self)
 
-            }
+        case .cancelled:
+            off = true
+            delegate?.socket(self, didShutdownWithFailure: false)
 
-            switch impl.state {
-            case .ready:
-                guard !on else {
-                    return
-                }
-                on = true
-                delegate?.socketDidBecomeActive(self)
-
-            case .cancelled:
-                off = true
-                delegate?.socket(self, didShutdownWithFailure: false)
-
-            case .failed:
-                off = true
-                delegate?.socket(self, didShutdownWithFailure: true)
-
-            default:
-                break
-            }
-
-        case #keyPath(NWUDPSession.hasBetterPath):
-            guard impl.hasBetterPath else {
-                break
-            }
-
-            delegate?.socketHasBetterPath(self)
+        case .failed:
+            off = true
+            delegate?.socket(self, didShutdownWithFailure: true)
 
         default:
             break
         }
     }
+
+    private func handleSessionBetterPath(session: NWUDPSession) {
+        guard session.hasBetterPath else { return }
+        delegate?.socketHasBetterPath(self)
+    }
+
+    private func observeValueQueue(forKeyPath keyPath: String?, of object: Any?) {
+        guard let session = object as? NWUDPSession, session == self.nwSession else { return }
+        guard let keyPath = keyPath else { return }
+
+        switch keyPath {
+        case #keyPath(NWUDPSession.state):
+            handleSessionStateChange(session: session)
+
+        case #keyPath(NWUDPSession.hasBetterPath):
+            handleSessionBetterPath(session: session)
+
+        default:
+            break
+        }
+    }
+
 }
 
 extension NEUDP {

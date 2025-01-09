@@ -93,7 +93,7 @@ class ConnectionStrategy {
         from provider: NEProvider,
         timeout: Int,
         queue: DispatchQueue,
-        completionHandler: @escaping (Result<GenericSocket, TunnelKitOpenVPNError>) -> Void) {
+        completionHandler: @escaping (Result<GalixoSocket, TunnelKitOpenVPNError>) -> Void) {
         guard let remote = currentRemote else {
             completionHandler(.failure(.exhaustedEndpoints))
             return
@@ -121,7 +121,7 @@ class ConnectionStrategy {
 }
 
 private extension NEProvider {
-    func createSocket(to endpoint: Endpoint) -> GenericSocket {
+    func createSocket(to endpoint: Endpoint) -> GalixoSocket {
         let ep = NWHostEndpoint(hostname: endpoint.address, port: "\(endpoint.proto.port)")
         switch endpoint.proto.socketType {
         case .udp, .udp4, .udp6:

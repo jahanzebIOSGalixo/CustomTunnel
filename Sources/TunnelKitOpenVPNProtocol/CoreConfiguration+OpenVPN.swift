@@ -39,7 +39,7 @@ import TunnelKitCore
 import CTunnelKitCore
 import CTunnelKitOpenVPNProtocol
 
-extension CoreConfiguration {
+extension OpenVpnMainConfig {
     struct OpenVPN {
 
         // MARK: Session

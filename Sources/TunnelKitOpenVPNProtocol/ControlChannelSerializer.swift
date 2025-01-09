@@ -144,7 +144,7 @@ extension OpenVPN.ControlChannel {
 
         private let preambleLength: Int
 
-        private var currentReplayId: BidirectionalState<UInt32>
+        private var currentReplayId: MultiStates<UInt32>
 
         private let timestamp: UInt32
 
@@ -166,7 +166,7 @@ extension OpenVPN.ControlChannel {
             authLength = hmacLength + PacketReplayIdLength + PacketReplayTimestampLength
             preambleLength = prefixLength + authLength
 
-            currentReplayId = BidirectionalState(withResetValue: 1)
+            currentReplayId = MultiStates(withResetValue: 1)
             timestamp = UInt32(Date().timeIntervalSince1970)
             plain = PlainSerializer()
         }
@@ -227,7 +227,7 @@ extension OpenVPN.ControlChannel {
 
         private let tagLength: Int
 
-        private var currentReplayId: BidirectionalState<UInt32>
+        private var currentReplayId: MultiStates<UInt32>
 
         private let timestamp: UInt32
 
@@ -248,7 +248,7 @@ extension OpenVPN.ControlChannel {
             adLength = headerLength + PacketReplayIdLength + PacketReplayTimestampLength
             tagLength = crypto.tagLength()
 
-            currentReplayId = BidirectionalState(withResetValue: 1)
+            currentReplayId = MultiStates(withResetValue: 1)
             timestamp = UInt32(Date().timeIntervalSince1970)
             plain = PlainSerializer()
         }

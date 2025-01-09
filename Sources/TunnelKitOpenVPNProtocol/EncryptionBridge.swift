@@ -120,21 +120,21 @@ extension OpenVPN {
             }
 
             let masterData = try EncryptionBridge.keysPRF(
-                CoreConfiguration.OpenVPN.label1, auth.preMaster, auth.random1,
+                OpenVpnMainConfig.OpenVPN.label1, auth.preMaster, auth.random1,
                 serverRandom1, nil, nil,
-                CoreConfiguration.OpenVPN.preMasterLength
+                OpenVpnMainConfig.OpenVPN.preMasterLength
             )
 
             let keysData = try EncryptionBridge.keysPRF(
-                CoreConfiguration.OpenVPN.label2, masterData, auth.random2,
+                OpenVpnMainConfig.OpenVPN.label2, masterData, auth.random2,
                 serverRandom2, sessionId, remoteSessionId,
-                CoreConfiguration.OpenVPN.keysCount * CoreConfiguration.OpenVPN.keyLength
+                OpenVpnMainConfig.OpenVPN.keysCount * OpenVpnMainConfig.OpenVPN.keyLength
             )
 
             var keysArray = [ZeroingData]()
-            for i in 0..<CoreConfiguration.OpenVPN.keysCount {
-                let offset = i * CoreConfiguration.OpenVPN.keyLength
-                let zbuf = keysData.withOffset(offset, count: CoreConfiguration.OpenVPN.keyLength)
+            for i in 0..<OpenVpnMainConfig.OpenVPN.keysCount {
+                let offset = i * OpenVpnMainConfig.OpenVPN.keyLength
+                let zbuf = keysData.withOffset(offset, count: OpenVpnMainConfig.OpenVPN.keyLength)
                 keysArray.append(zbuf)
             }
 

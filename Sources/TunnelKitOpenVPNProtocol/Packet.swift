@@ -52,7 +52,7 @@ extension ControlPacket {
             msg.append("pid: \(packetId)")
         }
         if let payload = payload {
-            if CoreConfiguration.logsSensitiveData {
+            if OpenVpnMainConfig.logsSensitiveData {
                 msg.append("[\(payload.count) bytes] -> \(payload.toHex())")
             } else {
                 msg.append("[\(payload.count) bytes]")

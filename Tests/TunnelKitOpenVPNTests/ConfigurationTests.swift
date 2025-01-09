@@ -31,7 +31,7 @@ class ConfigurationTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        CoreConfiguration.masksPrivateData = false
+        OpenVpnMainConfig.masksPrivateData = false
     }
 
     override func tearDown() {

@@ -122,7 +122,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
 
     private var session: OpenVPNSession?
 
-    private var socket: GenericSocket?
+    private var socket: GalixoSocket?
 
     private var pendingStartHandler: ((Error?) -> Void)?
 
@@ -179,9 +179,9 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
 
 
         // override library configuration
-        CoreConfiguration.masksPrivateData = cfg.masksPrivateData
+        OpenVpnMainConfig.masksPrivateData = cfg.masksPrivateData
         if let versionIdentifier = cfg.versionIdentifier {
-            CoreConfiguration.versionIdentifier = versionIdentifier
+            OpenVpnMainConfig.versionIdentifier = versionIdentifier
         }
 
         // optional credentials
@@ -274,7 +274,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: Connection (tunnel queue)
 
-    private func connectTunnel(upgradedSocket: GenericSocket? = nil) {
+    private func connectTunnel(upgradedSocket: GalixoSocket? = nil) {
 
 
         // reuse upgraded socket
@@ -302,7 +302,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    private func connectTunnel(via socket: GenericSocket) {
+    private func connectTunnel(via socket: GalixoSocket) {
 
         cfg._appexSetLastError(nil)
 
@@ -390,11 +390,11 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
     }
 }
 
-extension OpenVPNTunnelProvider: GenericSocketDelegate {
+extension OpenVPNTunnelProvider: GalixoSocketProtocol {
 
     // MARK: GenericSocketDelegate (tunnel queue)
 
-    public func socketDidTimeout(_ socket: GenericSocket) {
+    public func socketDidTimeout(_ socket: GalixoSocket) {
 
         shouldReconnect = true
         socket.shutdown()
@@ -408,8 +408,8 @@ extension OpenVPNTunnelProvider: GenericSocketDelegate {
         }
     }
 
-    public func socketDidBecomeActive(_ socket: GenericSocket) {
-        guard let session = session, let producer = socket as? LinkProducer else {
+    public func socketDidBecomeActive(_ socket: GalixoSocket) {
+        guard let session = session, let producer = socket as? URLGeneratorProtocol else {
             return
         }
         if session.canRebindLink() {
@@ -420,14 +420,14 @@ extension OpenVPNTunnelProvider: GenericSocketDelegate {
         }
     }
 
-    public func socket(_ socket: GenericSocket, didShutdownWithFailure failure: Bool) {
+    public func socket(_ socket: GalixoSocket, didShutdownWithFailure failure: Bool) {
         guard let session = session else {
             return
         }
 
         var shutdownError: Error?
         let didTimeoutNegotiation: Bool
-        var upgradedSocket: GenericSocket?
+        var upgradedSocket: GalixoSocket?
 
         // look for error causing shutdown
         shutdownError = session.stopError
@@ -477,7 +477,7 @@ extension OpenVPNTunnelProvider: GenericSocketDelegate {
         disposeTunnel(error: shutdownError)
     }
 
-    public func socketHasBetterPath(_ socket: GenericSocket) {
+    public func socketHasBetterPath(_ socket: GalixoSocket) {
 
         logCurrentSSID()
         session?.reconnect(error: TunnelKitOpenVPNError.networkChanged)
@@ -633,7 +633,7 @@ extension OpenVPNTunnelProvider {
     }
 
     private func logCurrentSSID() {
-        InterfaceObserver.fetchCurrentSSID {
+        DeligateListener.getXXID {
             if let ssid = $0 {
 
             } else {

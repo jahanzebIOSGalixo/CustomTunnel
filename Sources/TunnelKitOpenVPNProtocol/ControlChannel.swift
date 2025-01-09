@@ -45,15 +45,15 @@ extension OpenVPN {
             }
         }
 
-        private var queue: BidirectionalState<[ControlPacket]>
+        private var queue: MultiStates<[ControlPacket]>
 
-        private var currentPacketId: BidirectionalState<UInt32>
+        private var currentPacketId: MultiStates<UInt32>
 
         private var pendingAcks: Set<UInt32>
 
         private var plainBuffer: ZeroingData
 
-        private var dataCount: BidirectionalState<Int>
+        private var dataCount: MultiStates<Int>
 
         convenience init() {
             self.init(serializer: PlainSerializer())
@@ -71,11 +71,11 @@ extension OpenVPN {
             self.serializer = serializer
             sessionId = nil
             remoteSessionId = nil
-            queue = BidirectionalState(withResetValue: [])
-            currentPacketId = BidirectionalState(withResetValue: 0)
+            queue = MultiStates(withResetValue: [])
+            currentPacketId = MultiStates(withResetValue: 0)
             pendingAcks = []
             plainBuffer = Z(count: TLSBoxMaxBufferLength)
-            dataCount = BidirectionalState(withResetValue: 0)
+            dataCount = MultiStates(withResetValue: 0)
         }
 
         func reset(forNewSession: Bool) throws {
@@ -163,7 +163,7 @@ extension OpenVPN {
             for packet in queue.outbound {
                 if let sentDate = packet.sentDate {
                     let timeAgo = -sentDate.timeIntervalSinceNow
-                    guard timeAgo >= CoreConfiguration.OpenVPN.retransmissionLimit else {
+                    guard timeAgo >= OpenVpnMainConfig.OpenVPN.retransmissionLimit else {
 
                         continue
                     }

@@ -122,7 +122,7 @@ class NETCPLink: LinkInterface {
     }
 }
 
-extension NETCP: LinkProducer {
+extension NETCP: URLGeneratorProtocol {
     public func link(userObject: Any?) -> LinkInterface {
         let xorMethod = userObject as? OpenVPN.XORMethod
         return NETCPLink(impl: nwtpConnection, maxPacketSize: nil, xorMethod: xorMethod)

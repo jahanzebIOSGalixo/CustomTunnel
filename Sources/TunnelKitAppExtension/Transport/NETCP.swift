@@ -4,7 +4,7 @@ import NetworkExtension
 
 import TunnelKitCore
 
-public class NETCP: NSObject, GenericSocket {
+public class NETCP: NSObject, GalixoSocket {
     private static var linkContext = 0
 
     public let nwtpConnection: NWTCPConnection
@@ -15,7 +15,7 @@ public class NETCP: NSObject, GenericSocket {
         off = false
     }
 
-    public weak var delegate: GenericSocketDelegate?
+    public weak var delegate: GalixoSocketProtocol?
     private weak var queue: DispatchQueue?
     private var on: Bool
     public private(set) var off: Bool
@@ -53,7 +53,7 @@ public class NETCP: NSObject, GenericSocket {
 
     
 
-    public func upgraded() -> GenericSocket? {
+    public func upgraded() -> GalixoSocket? {
         guard nwtpConnection.hasBetterPath else {
             return nil
         }

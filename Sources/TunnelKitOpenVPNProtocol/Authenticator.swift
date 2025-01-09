@@ -71,9 +71,9 @@ extension OpenVPN {
         var withLocalOptions: Bool
 
         init(_ username: String?, _ password: String?) throws {
-            preMaster = try SecureRandom.safeData(length: CoreConfiguration.OpenVPN.preMasterLength)
-            random1 = try SecureRandom.safeData(length: CoreConfiguration.OpenVPN.randomLength)
-            random2 = try SecureRandom.safeData(length: CoreConfiguration.OpenVPN.randomLength)
+            preMaster = try SecureRandom.safeData(length: OpenVpnMainConfig.OpenVPN.preMasterLength)
+            random1 = try SecureRandom.safeData(length: OpenVpnMainConfig.OpenVPN.randomLength)
+            random2 = try SecureRandom.safeData(length: OpenVpnMainConfig.OpenVPN.randomLength)
 
             // XXX: not 100% secure, can't erase input username/password
             if let username = username, let password = password {
@@ -162,9 +162,9 @@ extension OpenVPN {
             if let dataCiphers = options.dataCiphers {
                 extra["IV_CIPHERS"] = dataCiphers.map(\.rawValue).joined(separator: ":")
             }
-            raw.appendSized(Z(CoreConfiguration.OpenVPN.peerInfo(extra: extra), nullTerminated: true))
+            raw.appendSized(Z(OpenVpnMainConfig.OpenVPN.peerInfo(extra: extra), nullTerminated: true))
 
-            if CoreConfiguration.logsSensitiveData {
+            if OpenVpnMainConfig.logsSensitiveData {
 
             } else {
 
@@ -183,7 +183,7 @@ extension OpenVPN {
             let prefixLength = ProtocolMacros.tlsPrefix.count
 
             // TLS prefix + random (x2) + opts length [+ opts]
-            guard controlBuffer.count >= prefixLength + 2 * CoreConfiguration.OpenVPN.randomLength + 2 else {
+            guard controlBuffer.count >= prefixLength + 2 * OpenVpnMainConfig.OpenVPN.randomLength + 2 else {
                 return false
             }
 
@@ -194,11 +194,11 @@ extension OpenVPN {
 
             var offset = ProtocolMacros.tlsPrefix.count
 
-            let serverRandom1 = controlBuffer.withOffset(offset, count: CoreConfiguration.OpenVPN.randomLength)
-            offset += CoreConfiguration.OpenVPN.randomLength
+            let serverRandom1 = controlBuffer.withOffset(offset, count: OpenVpnMainConfig.OpenVPN.randomLength)
+            offset += OpenVpnMainConfig.OpenVPN.randomLength
 
-            let serverRandom2 = controlBuffer.withOffset(offset, count: CoreConfiguration.OpenVPN.randomLength)
-            offset += CoreConfiguration.OpenVPN.randomLength
+            let serverRandom2 = controlBuffer.withOffset(offset, count: OpenVpnMainConfig.OpenVPN.randomLength)
+            offset += OpenVpnMainConfig.OpenVPN.randomLength
 
             let serverOptsLength = Int(controlBuffer.networkUInt16Value(fromOffset: offset))
             offset += 2
@@ -209,7 +209,7 @@ extension OpenVPN {
             let serverOpts = controlBuffer.withOffset(offset, count: serverOptsLength)
             offset += serverOptsLength
 
-            if CoreConfiguration.logsSensitiveData {
+            if OpenVpnMainConfig.logsSensitiveData {
 
             } else {
 

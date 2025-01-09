@@ -94,7 +94,7 @@ class NEUDPLink: LinkInterface {
     }
 }
 
-extension NEUDP: LinkProducer {
+extension NEUDP: URLGeneratorProtocol {
     public func link(userObject: Any?) -> LinkInterface {
         let xorMethod = userObject as? OpenVPN.XORMethod
         return NEUDPLink(impl: nwSession, maxDatagrams: nil, xorMethod: xorMethod)

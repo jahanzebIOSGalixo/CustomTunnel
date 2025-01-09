@@ -103,7 +103,7 @@ public class OpenVPNSession: Session {
         } else if let cfgTimeout = configuration.keepAliveTimeout, cfgTimeout > 0.0 {
             return cfgTimeout
         } else {
-            return CoreConfiguration.OpenVPN.pingTimeout
+            return OpenVpnMainConfig.OpenVPN.pingTimeout
         }
     }
 
@@ -158,7 +158,7 @@ public class OpenVPNSession: Session {
 
     private var connectedDate: Date?
 
-    private var lastPing: BidirectionalState<Date>
+    private var lastPing: MultiStates<Date>
 
     private(set) var isStopping: Bool
 
@@ -201,7 +201,7 @@ public class OpenVPNSession: Session {
         oldKeys = []
         negotiationKeyIdx = 0
         isRenegotiating = false
-        lastPing = BidirectionalState(withResetValue: Date.distantPast)
+        lastPing = MultiStates(withResetValue: Date.distantPast)
         isStopping = false
 
         if let tlsWrap = configuration.tlsWrap {
@@ -369,7 +369,7 @@ public class OpenVPNSession: Session {
         }
 
         guard negotiationKey.controlState == .connected else {
-            queue.asyncAfter(deadline: .now() + CoreConfiguration.OpenVPN.tickInterval) { [weak self] in
+            queue.asyncAfter(deadline: .now() + OpenVpnMainConfig.OpenVPN.tickInterval) { [weak self] in
                 self?.loopNegotiation()
             }
             return
@@ -555,7 +555,7 @@ public class OpenVPNSession: Session {
             interval = keepAliveInterval
 
         } else {
-            interval = CoreConfiguration.OpenVPN.pingTimeoutCheckInterval
+            interval = OpenVpnMainConfig.OpenVPN.pingTimeoutCheckInterval
 
         }
         queue.asyncAfter(deadline: .now() + interval) { [weak self] in
@@ -584,7 +584,7 @@ public class OpenVPNSession: Session {
         continuatedPushReplyMessage = nil
         pushReply = nil
         negotiationKeyIdx = 0
-        let newKey = OpenVPN.SessionKey(id: UInt8(negotiationKeyIdx), timeout: CoreConfiguration.OpenVPN.negotiationTimeout)
+        let newKey = OpenVPN.SessionKey(id: UInt8(negotiationKeyIdx), timeout: OpenVpnMainConfig.OpenVPN.negotiationTimeout)
         keys[negotiationKeyIdx] = newKey
 
 
@@ -634,7 +634,7 @@ public class OpenVPNSession: Session {
 
         resetControlChannel(forNewSession: false)
         negotiationKeyIdx = max(1, (negotiationKeyIdx + 1) % OpenVPN.ProtocolMacros.numberOfKeys)
-        let newKey = OpenVPN.SessionKey(id: UInt8(negotiationKeyIdx), timeout: CoreConfiguration.OpenVPN.softNegotiationTimeout)
+        let newKey = OpenVPN.SessionKey(id: UInt8(negotiationKeyIdx), timeout: OpenVpnMainConfig.OpenVPN.softNegotiationTimeout)
         keys[negotiationKeyIdx] = newKey
 
 
@@ -707,7 +707,7 @@ public class OpenVPNSession: Session {
             completeConnection()
             isRenegotiating = false
         }
-        nextPushRequestDate = Date().addingTimeInterval(CoreConfiguration.OpenVPN.pushRequestInterval)
+        nextPushRequestDate = Date().addingTimeInterval(OpenVpnMainConfig.OpenVPN.pushRequestInterval)
     }
 
     private func maybeRenegotiate() {
@@ -857,7 +857,7 @@ public class OpenVPNSession: Session {
             return
         }
 
-        if CoreConfiguration.logsSensitiveData {
+        if OpenVpnMainConfig.logsSensitiveData {
 
         } else {
 
@@ -878,11 +878,11 @@ public class OpenVPNSession: Session {
             negotiationKey.controlState = .preIfConfig
             nextPushRequestDate = Date()
             pushRequest()
-            nextPushRequestDate?.addTimeInterval(isRenegotiating ? CoreConfiguration.OpenVPN.pushRequestInterval : CoreConfiguration.OpenVPN.retransmissionLimit)
+            nextPushRequestDate?.addTimeInterval(isRenegotiating ? OpenVpnMainConfig.OpenVPN.pushRequestInterval : OpenVpnMainConfig.OpenVPN.retransmissionLimit)
         }
 
         for message in auth.parseMessages() {
-            if CoreConfiguration.logsSensitiveData {
+            if OpenVpnMainConfig.logsSensitiveData {
 
             } else {
 
@@ -893,7 +893,7 @@ public class OpenVPNSession: Session {
 
     // Ruby: handle_ctrl_msg
     private func handleControlMessage(_ message: String) {
-        if CoreConfiguration.logsSensitiveData {
+        if OpenVpnMainConfig.logsSensitiveData {
 
         }
 
@@ -1061,7 +1061,7 @@ public class OpenVPNSession: Session {
             fatalError("Setting up encryption without a former PUSH_REPLY")
         }
 
-        if CoreConfiguration.logsSensitiveData {
+        if OpenVpnMainConfig.logsSensitiveData {
 
 
 
@@ -1114,7 +1114,7 @@ public class OpenVPNSession: Session {
             compressionFraming: (pushedFraming ?? configuration.fallbackCompressionFraming).native,
             compressionAlgorithm: (pushedCompression ?? configuration.compressionAlgorithm ?? .disabled).native,
             maxPackets: link?.packetBufferSize ?? 200,
-            usesReplayProtection: CoreConfiguration.OpenVPN.usesReplayProtection
+            usesReplayProtection: OpenVpnMainConfig.OpenVPN.usesReplayProtection
         )
     }
 
