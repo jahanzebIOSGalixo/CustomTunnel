@@ -1,8 +1,8 @@
 //
-//  OpenVPNError.swift
+//  CryptoContainer.swift
 //  TunnelKit
 //
-//  Created by Davide De Rosa on 8/23/18.
+//  Created by Davide De Rosa on 8/22/18.
 //  Copyright (c) 2024 Davide De Rosa. All rights reserved.
 //
 //  https://github.com/passepartoutvpn
@@ -35,63 +35,54 @@
 //
 
 import Foundation
-import CTunnelKitOpenVPNCore
 
-/// The possible errors raised/thrown during `OpenVPNSession` operation.
-public enum OpenVPNError: Error {
+// FIXME: remove dependency on TLSBox
+import CTunnelKitOpenVPNProtocol
 
-    /// The negotiation timed out.
-    case negotiationTimeout
+extension OpenVPN {
 
-    /// The VPN session id is missing.
-    case missingSessionId
+    /// Represents a cryptographic container in PEM format.
+    public struct CryptoContainer: Codable, Equatable {
+        private static let begin = "-----BEGIN "
 
-    /// The VPN session id doesn't match.
-    case sessionMismatch
+        private static let end = "-----END "
 
-    /// The connection key is wrong or wasn't expected.
-    case badKey
+        /// The content in PEM format (ASCII).
+        public let pem: String
 
-    /// Control channel failure.
-    case controlChannel(message: String)
-
-    /// The control packet has an incorrect prefix payload.
-    case wrongControlDataPrefix
-
-    /// The provided credentials failed authentication.
-    case badCredentials
-
-    /// The reply to PUSH_REQUEST is malformed.
-    case malformedPushReply
-
-    /// A write operation failed at the link layer (e.g. network unreachable).
-    case failedLinkWrite
-
-    /// The server couldn't ping back before timeout.
-    case pingTimeout
-
-    /// The session reached a stale state and can't be recovered.
-    case staleSession
-
-    /// Server uses compression.
-    case serverCompression
-
-    /// Missing routing information.
-    case noRouting
-
-    /// Remote server shut down (--explicit-exit-notify).
-    case serverShutdown
-
-    /// NSError from ObjC layer.
-    case native(code: OpenVPNErrorCode)
-}
-
-extension Error {
-    public var asNativeOpenVPNError: OpenVPNError? {
-        let nativeError = self as NSError
-        guard nativeError.domain == OpenVPNErrorDomain, let code = OpenVPNErrorCode(rawValue: nativeError.code) else {
-            return nil
+        var isEncrypted: Bool {
+            return pem.contains("ENCRYPTED")
         }
-        return .native(code: code)
+
+        public init(pem: String) {
+            guard let beginRange = pem.range(of: CryptoContainer.begin) else {
+                self.pem = ""
+                return
+            }
+            self.pem = String(pem[beginRange.lowerBound...])
+        }
+
+        func write(to url: URL) throws {
+            try pem.write(to: url, atomically: true, encoding: .ascii)
+        }
+
+        // FIXME: remove dependency on TLSBox
+        func decrypted(with passphrase: String) throws -> CryptoContainer {
+            let decryptedPEM = try TLSBox.decryptedPrivateKey(fromPEM: pem, passphrase: passphrase)
+            return CryptoContainer(pem: decryptedPEM)
+        }
+
+        // MARK: Codable
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            let pem = try container.decode(String.self)
+            self.init(pem: pem)
+        }
+
+        public func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            try container.encode(pem)
+        }
     }
 }

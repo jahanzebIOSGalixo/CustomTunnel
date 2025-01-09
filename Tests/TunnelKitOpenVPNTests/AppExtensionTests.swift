@@ -65,7 +65,7 @@ class AppExtensionTests: XCTestCase {
         let credentials = OpenVPN.Credentials("foo", "bar")
 
         var builder = OpenVPN.ConfigurationBuilder()
-        builder.ca = OpenVPN.Encryption(pem: "abcdef")
+        builder.ca = OpenVPN.CryptoContainer(pem: "abcdef")
         builder.cipher = .aes128cbc
         builder.digest = .sha256
         builder.remotes = [.init(hostname, .init(.udp, port))]

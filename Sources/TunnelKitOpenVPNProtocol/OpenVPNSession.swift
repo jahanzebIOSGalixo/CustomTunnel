@@ -189,7 +189,7 @@ public class OpenVPNSession: Session {
      */
     public init(queue: DispatchQueue, configuration: OpenVPN.Configuration, cachesURL: URL) throws {
         guard let ca = configuration.ca else {
-            throw OpenVPN.SetupError.missingConfiguration(option: "ca")
+            throw OpenVPN.ConfigurationError.missingConfiguration(option: "ca")
         }
 
         self.queue = queue
@@ -954,7 +954,7 @@ public class OpenVPNSession: Session {
                     throw OpenVPNError.serverCompression
                 }
             }
-        } catch OpenVPN.SetupError.continuationPushReply {
+        } catch OpenVPN.ConfigurationError.continuationPushReply {
             continuatedPushReplyMessage = completeMessage.replacingOccurrences(of: "push-continuation", with: "")
             // FIXME: strip "PUSH_REPLY" and "push-continuation 2"
             return
