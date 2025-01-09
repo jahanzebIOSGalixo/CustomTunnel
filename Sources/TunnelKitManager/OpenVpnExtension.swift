@@ -168,16 +168,16 @@ public class ImplementationNExtension: MainVpnDelegate {
         protocolConfiguration: NETunnelProviderProtocol,
         onDemandRules: [NEOnDemandRule]
     ) async throws -> NETunnelProviderManager {
-        manager.localizedDescription = title
-        manager.protocolConfiguration = protocolConfiguration
-
+        
         if !onDemandRules.isEmpty {
             manager.onDemandRules = onDemandRules
             manager.isOnDemandEnabled = true
         } else {
             manager.isOnDemandEnabled = false
         }
-
+        
+        manager.localizedDescription = title
+        manager.protocolConfiguration = protocolConfiguration
         manager.isEnabled = true
         do {
             try await manager.saveToPreferences()
@@ -192,6 +192,10 @@ public class ImplementationNExtension: MainVpnDelegate {
         }
     }
 
+    private func lookupAll() async throws -> [NETunnelProviderManager] {
+        try await NETunnelProviderManager.loadAllFromPreferences()
+    }
+    
     private func retainManagers(_ managers: [NETunnelProviderManager], isIncluded: (NETunnelProviderManager) -> Bool) async {
         let others = managers.filter {
             !isIncluded($0)
@@ -204,38 +208,17 @@ public class ImplementationNExtension: MainVpnDelegate {
         }
     }
 
-    private func lookupAll() async throws -> [NETunnelProviderManager] {
-        try await NETunnelProviderManager.loadAllFromPreferences()
-    }
-
     // MARK: Notifications
-
-    @objc private func vpnDidUpdate(_ notification: Notification) {
-        guard let connection = notification.object as? NETunnelProviderSession else {
-            return
-        }
-        notifyStatus(connection)
-    }
-
-    @objc private func vpnDidReinstall(_ notification: Notification) {
-        guard let manager = notification.object as? NETunnelProviderManager else {
-            return
-        }
-        notifyReinstall(manager)
-    }
-
-    private func notifyReinstall(_ manager: NETunnelProviderManager) {
-        guard let bundleId = manager.tunnelBundleIdentifier else {
-            return
-        }
+    private func notifyInstallError(_ error: Error) {
 
 
-        var notification = Notification(name: VPNNotification.didReinstall)
-        notification.vpnBundleIdentifier = bundleId
-        notification.vpnIsEnabled = manager.isEnabled
+        var notification = Notification(name: VpnConnectionObserver.connectionDidFail)
+        notification.vpnError = error
+        notification.isConnected = false
         NotificationCenter.default.post(notification)
     }
-
+    
+    
     private func notifyStatus(_ connection: NETunnelProviderSession) {
         guard let _ = connection.manager.localizedDescription else {
 
@@ -245,22 +228,41 @@ public class ImplementationNExtension: MainVpnDelegate {
             return
         }
 
-        var notification = Notification(name: VPNNotification.didChangeStatus)
+        var notification = Notification(name: VpnConnectionObserver.vpnStateChanged)
         notification.vpnBundleIdentifier = bundleId
-        notification.vpnIsEnabled = connection.manager.isEnabled
-        notification.vpnStatus = connection.status.wrappedStatus
-        notification.connectionDate = connection.connectedDate
+        notification.isConnected = connection.manager.isEnabled
+        notification.connectionVpnState = connection.status.wrappedStatus
+       // notification.connectionDate = connection.connectedDate
+        NotificationCenter.default.post(notification)
+    }
+    @objc private func vpnDidReinstall(_ notification: Notification) {
+        guard let manager = notification.object as? NETunnelProviderManager else {
+            return
+        }
+        notifyReinstall(manager)
+    }
+    
+    @objc private func vpnDidUpdate(_ notification: Notification) {
+        guard let connection = notification.object as? NETunnelProviderSession else {
+            return
+        }
+        notifyStatus(connection)
+    }
+    private func notifyReinstall(_ manager: NETunnelProviderManager) {
+        guard let bundleId = manager.tunnelBundleIdentifier else {
+            return
+        }
+
+
+        var notification = Notification(name: VpnConnectionObserver.profileReinstalled)
+        notification.vpnBundleIdentifier = bundleId
+        notification.isConnected = manager.isEnabled
         NotificationCenter.default.post(notification)
     }
 
-    private func notifyInstallError(_ error: Error) {
+   
 
-
-        var notification = Notification(name: VPNNotification.didFail)
-        notification.vpnError = error
-        notification.vpnIsEnabled = false
-        NotificationCenter.default.post(notification)
-    }
+   
 }
 
 private extension NEVPNManager {
