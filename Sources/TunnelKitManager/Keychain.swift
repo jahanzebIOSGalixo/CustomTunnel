@@ -208,3 +208,9 @@ public class Keychain {
         }
     }
 }
+
+import Foundation
+
+public enum TunnelKitManagerError: Error {
+    case keychain(_ error: PersistanceError)
+}

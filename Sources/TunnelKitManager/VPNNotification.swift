@@ -71,9 +71,9 @@ extension Notification {
     }
 
     /// The current VPN status.
-    public var vpnStatus: VPNStatus {
+    public var vpnStatus: OpenVpnState {
         get {
-            guard let vpnStatus = userInfo?["Status"] as? VPNStatus else {
+            guard let vpnStatus = userInfo?["Status"] as? OpenVpnState else {
                 fatalError("Notification has no vpnStatus")
             }
             return vpnStatus
