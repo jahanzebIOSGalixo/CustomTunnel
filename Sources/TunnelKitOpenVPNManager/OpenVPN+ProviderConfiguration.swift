@@ -94,11 +94,11 @@ extension OpenVPN {
 
 // MARK: NetworkExtensionConfiguration
 
-extension OpenVPN.ProviderConfiguration: NetworkExtensionConfiguration {
+extension OpenVPN.ProviderConfiguration: MoreConfigDelegate {
 
     public func asTunnelProtocol(
         withBundleIdentifier tunnelBundleIdentifier: String,
-        extra: NetworkExtensionExtra?
+        extra: MoreSetting?
     ) throws -> NETunnelProviderProtocol {
         guard let firstRemote = configuration.remotes?.first else {
             preconditionFailure("No remotes set")

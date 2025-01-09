@@ -30,22 +30,22 @@ import TunnelKitCore
 
 
 class ResolvedRemote: CustomStringConvertible {
-    let originalEndpoint: Endpoint
+    let originalEndpoint: ServerConnectionDestination
 
     private(set) var isResolved: Bool
 
-    private(set) var resolvedEndpoints: [Endpoint]
+    private(set) var resolvedEndpoints: [ServerConnectionDestination]
 
     private var currentEndpointIndex: Int
 
-    var currentEndpoint: Endpoint? {
+    var currentEndpoint: ServerConnectionDestination? {
         guard currentEndpointIndex < resolvedEndpoints.count else {
             return nil
         }
         return resolvedEndpoints[currentEndpointIndex]
     }
 
-    init(_ originalEndpoint: Endpoint) {
+    init(_ originalEndpoint: ServerConnectionDestination) {
         self.originalEndpoint = originalEndpoint
         isResolved = false
         resolvedEndpoints = []
@@ -58,13 +58,13 @@ class ResolvedRemote: CustomStringConvertible {
     }
 
     func resolve(timeout: Int, queue: DispatchQueue, completionHandler: @escaping () -> Void) {
-        DNSResolver.resolve(originalEndpoint.address, timeout: timeout, queue: queue) { [weak self] in
+        SolverSND.dnsFromHost(originalEndpoint.address, timeout: timeout, queue: queue) { [weak self] in
             self?.handleResult($0)
             completionHandler()
         }
     }
 
-    private func handleResult(_ result: Result<[DNSRecord], Error>) {
+    private func handleResult(_ result: Result<[ResolveDnsRec], Error>) {
         switch result {
         case .success(let records):
 
@@ -78,11 +78,11 @@ class ResolvedRemote: CustomStringConvertible {
         }
     }
 
-    private func unrolledEndpoints(records: [DNSRecord]) -> [Endpoint] {
+    private func unrolledEndpoints(records: [ResolveDnsRec]) -> [ServerConnectionDestination] {
         let endpoints = records.filter {
             $0.isCompatible(withProtocol: originalEndpoint.proto)
         }.map {
-            Endpoint($0.address, originalEndpoint.proto)
+            ServerConnectionDestination($0.address, originalEndpoint.proto)
         }
 
         return endpoints
@@ -95,8 +95,8 @@ class ResolvedRemote: CustomStringConvertible {
     }
 }
 
-private extension DNSRecord {
-    func isCompatible(withProtocol proto: EndpointProtocol) -> Bool {
+private extension ResolveDnsRec {
+    func isCompatible(withProtocol proto: GalixoDestinationDelegate) -> Bool {
         if isIPv6 {
             return proto.socketType != .udp4 && proto.socketType != .tcp4
         } else {

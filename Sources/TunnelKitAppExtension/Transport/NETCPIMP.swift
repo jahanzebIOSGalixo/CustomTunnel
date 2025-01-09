@@ -3,7 +3,7 @@ import Foundation
 import NetworkExtension
 
 
-public class NETCPIMP: TunnelProtocol {
+public class NETCPIMP: MainConnectionDeletage {
     private weak var nePacketTunnelFlow: NEPacketTunnelFlow?
 
     public init(nEPacketTunnelFlow: NEPacketTunnelFlow) {
@@ -24,7 +24,7 @@ public class NETCPIMP: TunnelProtocol {
 
 
     public func singleDataWritten(_ packet: Data, completionHandler: ((Error?) -> Void)?) {
-        let protocolNumber = IPHeader.protocolNumber(inPacket: packet)
+        let protocolNumber = ParmsOfIp.packetDetails(inPacket: packet)
         nePacketTunnelFlow?.writePackets([packet], withProtocols: [protocolNumber])
         completionHandler?(nil)
     }
@@ -42,7 +42,7 @@ public class NETCPIMP: TunnelProtocol {
 
     public func multiplePacketsDataWritten(_ packets: [Data], completionHandler: ((Error?) -> Void)?) {
         let protocols = packets.map {
-            IPHeader.protocolNumber(inPacket: $0)
+            ParmsOfIp.packetDetails(inPacket: $0)
         }
         nePacketTunnelFlow?.writePackets(packets, withProtocols: protocols)
         completionHandler?(nil)

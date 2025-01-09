@@ -101,7 +101,7 @@ class AppExtensionTests: XCTestCase {
 
     func testDNSResolver() {
         let exp = expectation(description: "DNS")
-        DNSResolver.resolve("www.google.com", timeout: 1000, queue: .main) {
+        SolverSND.dnsFromHost("www.google.com", timeout: 1000, queue: .main) {
             defer {
                 exp.fulfill()
             }
@@ -127,11 +127,11 @@ class AppExtensionTests: XCTestCase {
             "255.255.255.255"
         ]
         for expString in testStrings {
-            guard let number = DNSResolver.ipv4(fromString: expString) else {
+            guard let number = SolverSND.ipv4(fromString: expString) else {
                 XCTAssertEqual(expString, "111.222.333.444")
                 continue
             }
-            let string = DNSResolver.string(fromIPv4: number)
+            let string = SolverSND.string(fromIPv4: number)
             XCTAssertEqual(string, expString)
         }
     }

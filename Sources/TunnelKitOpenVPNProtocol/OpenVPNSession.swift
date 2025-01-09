@@ -142,9 +142,9 @@ public class OpenVPNSession: Session {
         return keys[i]
     }
 
-    private var link: LinkInterface?
+    private var link: URLDelegate?
 
-    private var tunnel: TunnelProtocol?
+    private var tunnel: MainConnectionDeletage?
 
     private var isReliableLink: Bool {
         return link?.isReliable ?? false
@@ -158,7 +158,7 @@ public class OpenVPNSession: Session {
 
     private var connectedDate: Date?
 
-    private var lastPing: MultiStates<Date>
+    private var lastPing: MyConnectionStatuses<Date>
 
     private(set) var isStopping: Bool
 
@@ -201,7 +201,7 @@ public class OpenVPNSession: Session {
         oldKeys = []
         negotiationKeyIdx = 0
         isRenegotiating = false
-        lastPing = MultiStates(withResetValue: Date.distantPast)
+        lastPing = MyConnectionStatuses(val: Date.distantPast)
         isStopping = false
 
         if let tlsWrap = configuration.tlsWrap {
@@ -227,7 +227,7 @@ public class OpenVPNSession: Session {
 
     // MARK: Session
 
-    public func setLink(_ link: LinkInterface) {
+    public func setLink(_ link: URLDelegate) {
         guard self.link == nil else {
 
             return
@@ -253,7 +253,7 @@ public class OpenVPNSession: Session {
         return false
     }
 
-    public func rebindLink(_ link: LinkInterface) {
+    public func rebindLink(_ link: URLDelegate) {
         guard let _ = pushReply?.options.peerId else {
 
             return
@@ -266,7 +266,7 @@ public class OpenVPNSession: Session {
         loopLink()
     }
 
-    public func setTunnel(tunnel: TunnelProtocol) {
+    public func setTunnel(tunnel: MainConnectionDeletage) {
         guard self.tunnel == nil else {
 
             return

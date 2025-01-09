@@ -45,15 +45,15 @@ extension OpenVPN {
             }
         }
 
-        private var queue: MultiStates<[ControlPacket]>
+        private var queue: MyConnectionStatuses<[ControlPacket]>
 
-        private var currentPacketId: MultiStates<UInt32>
+        private var currentPacketId: MyConnectionStatuses<UInt32>
 
         private var pendingAcks: Set<UInt32>
 
         private var plainBuffer: ZeroingData
 
-        private var dataCount: MultiStates<Int>
+        private var dataCount: MyConnectionStatuses<Int>
 
         convenience init() {
             self.init(serializer: PlainSerializer())
@@ -71,11 +71,11 @@ extension OpenVPN {
             self.serializer = serializer
             sessionId = nil
             remoteSessionId = nil
-            queue = MultiStates(withResetValue: [])
-            currentPacketId = MultiStates(withResetValue: 0)
+            queue = MyConnectionStatuses(val: [])
+            currentPacketId = MyConnectionStatuses(val: 0)
             pendingAcks = []
             plainBuffer = Z(count: TLSBoxMaxBufferLength)
-            dataCount = MultiStates(withResetValue: 0)
+            dataCount = MyConnectionStatuses(val: 0)
         }
 
         func reset(forNewSession: Bool) throws {

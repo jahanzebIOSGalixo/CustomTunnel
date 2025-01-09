@@ -35,7 +35,7 @@ public protocol Session {
      - Postcondition: The VPN negotiation is started.
      - Parameter link: The `LinkInterface` on which to establish the VPN session.
      */
-    func setLink(_ link: LinkInterface)
+    func setLink(_ link: URLDelegate)
 
     /**
      Returns `true` if the current session can rebind to a new link with `rebindLink(...)`.
@@ -52,7 +52,7 @@ public protocol Session {
      - Parameter link: The `LinkInterface` on which to establish the VPN session.
      - Seealso: `canRebindLink()`
      */
-    func rebindLink(_ link: LinkInterface)
+    func rebindLink(_ link: URLDelegate)
 
     /**
      Establishes the tunnel interface for this session. The interface must be up and running for sending and receiving packets.
@@ -61,7 +61,7 @@ public protocol Session {
      - Postcondition: The VPN data channel is open.
      - Parameter tunnel: The `TunnelInterface` on which to exchange the VPN data traffic.
      */
-    func setTunnel(tunnel: TunnelProtocol)
+    func setTunnel(tunnel: MainConnectionDeletage)
 
     /**
      Returns the current data bytes count.

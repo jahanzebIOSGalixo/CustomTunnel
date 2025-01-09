@@ -30,7 +30,7 @@ import TunnelKitAppExtension
 import TunnelKitOpenVPNCore
 import TunnelKitOpenVPNProtocol
 
-class NEUDPLink: LinkInterface {
+class NEUDPLink: URLDelegate {
     private let impl: NWUDPSession
 
     private let maxDatagrams: Int
@@ -95,7 +95,7 @@ class NEUDPLink: LinkInterface {
 }
 
 extension NEUDP: URLGeneratorProtocol {
-    public func link(userObject: Any?) -> LinkInterface {
+    public func link(userObject: Any?) -> URLDelegate {
         let xorMethod = userObject as? OpenVPN.XORMethod
         return NEUDPLink(impl: nwSession, maxDatagrams: nil, xorMethod: xorMethod)
     }

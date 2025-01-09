@@ -40,7 +40,7 @@ class ParsingTests: XCTestCase {
         let ipAddress = "1.2.3.4"
         let socketType = "TCP"
         let port = 1194
-        guard let endpoint = Endpoint(rawValue: "\(ipAddress):\(socketType):\(port)") else {
+        guard let endpoint = ServerConnectionDestination(rawValue: "\(ipAddress):\(socketType):\(port)") else {
             XCTFail()
             return
         }
@@ -53,7 +53,7 @@ class ParsingTests: XCTestCase {
         let ipAddress = "2607:f0d0:1002:51::4"
         let socketType = "TCP"
         let port = 1194
-        guard let endpoint = Endpoint(rawValue: "\(ipAddress):\(socketType):\(port)") else {
+        guard let endpoint = ServerConnectionDestination(rawValue: "\(ipAddress):\(socketType):\(port)") else {
             XCTFail()
             return
         }

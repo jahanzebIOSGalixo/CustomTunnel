@@ -121,7 +121,7 @@ class ConnectionStrategy {
 }
 
 private extension NEProvider {
-    func createSocket(to endpoint: Endpoint) -> GalixoSocket {
+    func createSocket(to endpoint: ServerConnectionDestination) -> GalixoSocket {
         let ep = NWHostEndpoint(hostname: endpoint.address, port: "\(endpoint.proto.port)")
         switch endpoint.proto.socketType {
         case .udp, .udp4, .udp6:

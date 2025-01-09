@@ -359,7 +359,7 @@ extension NetworkSettingsBuilder {
     }
 }
 
-private extension Proxy {
+private extension GalixoServer {
     func neProxy() -> NEProxyServer {
         return NEProxyServer(address: address, port: Int(port))
     }

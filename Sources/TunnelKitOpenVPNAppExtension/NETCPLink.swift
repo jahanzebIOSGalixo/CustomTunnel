@@ -30,7 +30,7 @@ import TunnelKitAppExtension
 import TunnelKitOpenVPNCore
 import CTunnelKitOpenVPNProtocol
 
-class NETCPLink: LinkInterface {
+class NETCPLink: URLDelegate {
     private let impl: NWTCPConnection
 
     private let maxPacketSize: Int
@@ -123,7 +123,7 @@ class NETCPLink: LinkInterface {
 }
 
 extension NETCP: URLGeneratorProtocol {
-    public func link(userObject: Any?) -> LinkInterface {
+    public func link(userObject: Any?) -> URLDelegate {
         let xorMethod = userObject as? OpenVPN.XORMethod
         return NETCPLink(impl: nwtpConnection, maxPacketSize: nil, xorMethod: xorMethod)
     }

@@ -53,8 +53,8 @@ public class NetworkExtensionVPN: VPN {
 
     public func install(
         _ tunnelBundleIdentifier: String,
-        configuration: NetworkExtensionConfiguration,
-        extra: NetworkExtensionExtra?
+        configuration: MoreConfigDelegate,
+        extra: MoreSetting?
     ) async throws {
         _ = try await installReturningManager(
             tunnelBundleIdentifier,
@@ -77,8 +77,8 @@ public class NetworkExtensionVPN: VPN {
 
     public func reconnect(
         _ tunnelBundleIdentifier: String,
-        configuration: NetworkExtensionConfiguration,
-        extra: NetworkExtensionExtra?,
+        configuration: MoreConfigDelegate,
+        extra: MoreSetting?,
         after: DispatchTimeInterval
     ) async throws {
         do {
@@ -131,8 +131,8 @@ public class NetworkExtensionVPN: VPN {
     @discardableResult
     private func installReturningManager(
         _ tunnelBundleIdentifier: String,
-        configuration: NetworkExtensionConfiguration,
-        extra: NetworkExtensionExtra?
+        configuration: MoreConfigDelegate,
+        extra: MoreSetting?
     ) async throws -> NETunnelProviderManager {
         let proto = try configuration.asTunnelProtocol(
             withBundleIdentifier: tunnelBundleIdentifier,

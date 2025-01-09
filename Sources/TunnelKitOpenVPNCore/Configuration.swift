@@ -212,7 +212,7 @@ extension OpenVPN {
         // MARK: Client
 
         /// The list of server endpoints.
-        public var remotes: [Endpoint]?
+        public var remotes: [ServerConnectionDestination]?
 
         /// If true, checks EKU of server certificate.
         public var checksEKU: Bool?
@@ -264,7 +264,7 @@ extension OpenVPN {
         public var isDNSEnabled: Bool?
 
         /// The DNS protocol, defaults to `.plain` (iOS 14+ / macOS 11+).
-        public var dnsProtocol: DNSProtocol?
+        public var dnsProtocol: ProtocolDNSDelegate?
 
         /// The DNS servers if `dnsProtocol = .plain` or nil.
         public var dnsServers: [String]?
@@ -300,10 +300,10 @@ extension OpenVPN {
         public var isProxyEnabled: Bool?
 
         /// The HTTP proxy.
-        public var httpProxy: Proxy?
+        public var httpProxy: GalixoServer?
 
         /// The HTTPS proxy.
-        public var httpsProxy: Proxy?
+        public var httpsProxy: GalixoServer?
 
         /// The list of domains not passing through the proxy.
         public var proxyBypassDomains: [String]?
@@ -441,7 +441,7 @@ extension OpenVPN {
         public let renegotiatesAfter: TimeInterval?
 
         /// - Seealso: `ConfigurationBuilder.remotes`
-        public let remotes: [Endpoint]?
+        public let remotes: [ServerConnectionDestination]?
 
         /// - Seealso: `ConfigurationBuilder.checksEKU`
         public let checksEKU: Bool?
@@ -489,7 +489,7 @@ extension OpenVPN {
         public let isDNSEnabled: Bool?
 
         /// - Seealso: `ConfigurationBuilder.dnsProtocol`
-        public let dnsProtocol: DNSProtocol?
+        public let dnsProtocol: ProtocolDNSDelegate?
 
         /// - Seealso: `ConfigurationBuilder.dnsServers`
         public let dnsServers: [String]?
@@ -510,10 +510,10 @@ extension OpenVPN {
         public let isProxyEnabled: Bool?
 
         /// - Seealso: `ConfigurationBuilder.httpProxy`
-        public let httpProxy: Proxy?
+        public let httpProxy: GalixoServer?
 
         /// - Seealso: `ConfigurationBuilder.httpsProxy`
-        public let httpsProxy: Proxy?
+        public let httpsProxy: GalixoServer?
 
         /// - Seealso: `ConfigurationBuilder.proxyAutoConfigurationURL`
         public let proxyAutoConfigurationURL: URL?
@@ -559,7 +559,7 @@ extension OpenVPN {
 
         // MARK: Computed
 
-        public var processedRemotes: [Endpoint]? {
+        public var processedRemotes: [ServerConnectionDestination]? {
             guard var processedRemotes = remotes else {
                 return nil
             }
@@ -569,7 +569,7 @@ extension OpenVPN {
             if let randomPrefixLength = (randomizeHostnames ?? false) ? Self.randomHostnamePrefixLength : nil {
                 processedRemotes = processedRemotes.compactMap {
                     do {
-                        return try $0.withRandomPrefixLength(randomPrefixLength)
+                        return try $0.countNumber(randomPrefixLength)
                     } catch {
 
                         return nil

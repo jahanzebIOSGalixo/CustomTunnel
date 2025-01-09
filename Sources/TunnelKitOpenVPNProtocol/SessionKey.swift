@@ -86,12 +86,12 @@ extension OpenVPN {
         }
 
         // Ruby: Key.hard_reset_timeout
-        func didHardResetTimeOut(link: LinkInterface) -> Bool {
+        func didHardResetTimeOut(link: URLDelegate) -> Bool {
             return ((state == .hardReset) && (-startTime.timeIntervalSinceNow > OpenVpnMainConfig.OpenVPN.hardResetTimeout))
         }
 
         // Ruby: Key.negotiate_timeout
-        func didNegotiationTimeOut(link: LinkInterface) -> Bool {
+        func didNegotiationTimeOut(link: URLDelegate) -> Bool {
             return ((controlState != .connected) && (-startTime.timeIntervalSinceNow > timeout))
         }
 

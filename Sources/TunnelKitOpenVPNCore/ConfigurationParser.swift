@@ -271,9 +271,9 @@ extension OpenVPN {
             var optKeepAliveTimeoutSeconds: TimeInterval?
             var optRenegotiateAfterSeconds: TimeInterval?
             //
-            var optDefaultProto: SocketType?
+            var optDefaultProto: TotalServerCount?
             var optDefaultPort: UInt16?
-            var optRemotes: [(String, UInt16?, SocketType?)] = [] // address, port, socket
+            var optRemotes: [(String, UInt16?, TotalServerCount?)] = [] // address, port, socket
             var authUserPass = false
             var optChecksEKU: Bool?
             var optRandomizeEndpoint: Bool?
@@ -292,8 +292,8 @@ extension OpenVPN {
             var optDNSServers: [String]?
             var optDomain: String?
             var optSearchDomains: [String]?
-            var optHTTPProxy: Proxy?
-            var optHTTPSProxy: Proxy?
+            var optHTTPProxy: GalixoServer?
+            var optHTTPSProxy: GalixoServer?
             var optProxyAutoConfigurationURL: URL?
             var optProxyBypass: [String]?
             var optRedirectGateway: Set<RedirectGateway>?
@@ -531,7 +531,7 @@ extension OpenVPN {
                     guard let str = $0.first else {
                         return
                     }
-                    optDefaultProto = SocketType(protoString: str)
+                    optDefaultProto = TotalServerCount(protoString: str)
                     if optDefaultProto == nil {
                         unsupportedError = ConfigurationError.unsupportedConfiguration(option: "proto \(str)")
                     }
@@ -549,14 +549,14 @@ extension OpenVPN {
                         return
                     }
                     var port: UInt16?
-                    var proto: SocketType?
+                    var proto: TotalServerCount?
                     var strippedComponents = ["remote", "<hostname>"]
                     if $0.count > 1 {
                         port = UInt16($0[1])
                         strippedComponents.append($0[1])
                     }
                     if $0.count > 2 {
-                        proto = SocketType(protoString: $0[2])
+                        proto = TotalServerCount(protoString: $0[2])
                         strippedComponents.append($0[2])
                     }
                     optRemotes.append((hostname, port, proto))
@@ -685,10 +685,10 @@ extension OpenVPN {
                     }
                     switch $0[0] {
                     case "PROXY_HTTPS":
-                        optHTTPSProxy = Proxy($0[1], port)
+                        optHTTPSProxy = GalixoServer($0[1], port)
 
                     case "PROXY_HTTP":
-                        optHTTPProxy = Proxy($0[1], port)
+                        optHTTPProxy = GalixoServer($0[1], port)
 
                     default:
                         break
@@ -834,7 +834,7 @@ extension OpenVPN {
             optDefaultProto = optDefaultProto ?? .udp
             optDefaultPort = optDefaultPort ?? 1194
             if !optRemotes.isEmpty {
-                var fullRemotes: [(String, UInt16, SocketType)] = []
+                var fullRemotes: [(String, UInt16, TotalServerCount)] = []
                 optRemotes.forEach {
                     let hostname = $0.0
                     guard let port = $0.1 ?? optDefaultPort else {
@@ -846,7 +846,7 @@ extension OpenVPN {
                     fullRemotes.append((hostname, port, socketType))
                 }
                 sessionBuilder.remotes = fullRemotes.map {
-                    Endpoint($0.0, .init($0.2, $0.1))
+                    ServerConnectionDestination($0.0, .init($0.2, $0.1))
                 }
             }
 
@@ -1013,7 +1013,7 @@ private extension String {
     }
 }
 
-private extension SocketType {
+private extension TotalServerCount {
     init?(protoString: String) {
         self.init(rawValue: protoString.uppercased())
     }
