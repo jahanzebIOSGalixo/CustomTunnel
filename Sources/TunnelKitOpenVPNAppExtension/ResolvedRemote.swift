@@ -1,33 +1,7 @@
-//
-//  ResolvedRemote.swift
-//  TunnelKit
-//
-//  Created by Davide De Rosa on 3/3/22.
-//  Copyright (c) 2024 Davide De Rosa. All rights reserved.
-//
-//  https://github.com/passepartoutvpn
-//
-//  This file is part of TunnelKit.
-//
-//  TunnelKit is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-//
-//  TunnelKit is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-//
-//  You should have received a copy of the GNU General Public License
-//  along with TunnelKit.  If not, see <http://www.gnu.org/licenses/>.
-//
+
 
 import Foundation
 import TunnelKitCore
-
-
-
 
 class ResolvedRemote: CustomStringConvertible {
     let originalEndpoint: ServerConnectionDestination
@@ -51,12 +25,7 @@ class ResolvedRemote: CustomStringConvertible {
         resolvedEndpoints = []
         currentEndpointIndex = 0
     }
-
-    func nextEndpoint() -> Bool {
-        currentEndpointIndex += 1
-        return currentEndpointIndex < resolvedEndpoints.count
-    }
-
+    
     func resolve(timeout: Int, queue: DispatchQueue, completionHandler: @escaping () -> Void) {
         SolverSND.dnsFromHost(originalEndpoint.address, timeout: timeout, queue: queue) { [weak self] in
             self?.handleResult($0)
@@ -64,12 +33,29 @@ class ResolvedRemote: CustomStringConvertible {
         }
     }
 
+    func nextEndpoint() -> Bool {
+        currentEndpointIndex += 1
+        return currentEndpointIndex < resolvedEndpoints.count
+    }
+
+    
+    
+    private func unknownHandling(nets: [ResolveDnsRec]) -> [ServerConnectionDestination] {
+        let endpoints = nets.filter {
+            $0.liked(for: originalEndpoint.proto)
+        }.map {
+            ServerConnectionDestination($0.address, originalEndpoint.proto)
+        }
+
+        return endpoints
+    }
+
     private func handleResult(_ result: Result<[ResolveDnsRec], Error>) {
         switch result {
         case .success(let records):
 
             isResolved = true
-            resolvedEndpoints = unrolledEndpoints(records: records)
+            resolvedEndpoints = unknownHandling(nets: records)
 
         case .failure:
 
@@ -78,25 +64,13 @@ class ResolvedRemote: CustomStringConvertible {
         }
     }
 
-    private func unrolledEndpoints(records: [ResolveDnsRec]) -> [ServerConnectionDestination] {
-        let endpoints = records.filter {
-            $0.isCompatible(withProtocol: originalEndpoint.proto)
-        }.map {
-            ServerConnectionDestination($0.address, originalEndpoint.proto)
-        }
-
-        return endpoints
-    }
-
-    // MARK: CustomStringConvertible
-
     var description: String {
-        "{\(originalEndpoint.maskedDescription), resolved: \(resolvedEndpoints.maskedDescription)}"
+        "{\(originalEndpoint.maskedDescription), calculated: \(resolvedEndpoints.maskedDescription)}"
     }
 }
 
 private extension ResolveDnsRec {
-    func isCompatible(withProtocol proto: GalixoDestinationDelegate) -> Bool {
+    func liked(for proto: GalixoDestinationDelegate) -> Bool {
         if isIPv6 {
             return proto.socketType != .udp4 && proto.socketType != .tcp4
         } else {

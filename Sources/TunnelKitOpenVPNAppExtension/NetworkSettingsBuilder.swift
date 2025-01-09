@@ -1,27 +1,3 @@
-//
-//  NetworkSettingsBuilder.swift
-//  TunnelKit
-//
-//  Created by Davide De Rosa on 10/21/22.
-//  Copyright (c) 2024 Davide De Rosa. All rights reserved.
-//
-//  https://github.com/passepartoutvpn
-//
-//  This file is part of TunnelKit.
-//
-//  TunnelKit is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-//
-//  TunnelKit is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-//
-//  You should have received a copy of the GNU General Public License
-//  along with TunnelKit.  If not, see <http://www.gnu.org/licenses/>.
-//
 
 import Foundation
 import NetworkExtension
@@ -29,14 +5,13 @@ import TunnelKitCore
 import TunnelKitOpenVPNCore
 
 
-
-
 struct NetworkSettingsBuilder {
-    let remoteAddress: String
-
-    let localOptions: OpenVPN.Configuration
-
+    
+    
     let remoteOptions: OpenVPN.Configuration
+    let localOptions: OpenVPN.Configuration
+    let remoteAddress: String
+    
 
     init(remoteAddress: String, localOptions: OpenVPN.Configuration, remoteOptions: OpenVPN.Configuration) {
         self.remoteAddress = remoteAddress
@@ -45,10 +20,11 @@ struct NetworkSettingsBuilder {
     }
 
     func build() -> NEPacketTunnelNetworkSettings {
-        let ipv4Settings = computedIPv4Settings
-        let ipv6Settings = computedIPv6Settings
         let dnsSettings = computedDNSSettings
+        let ipv6Settings = computedIPv6Settings
+        let ipv4Settings = computedIPv4Settings
         let proxySettings = computedProxySettings
+        
 
         // add direct routes to DNS servers
         if !isGateway {
@@ -74,7 +50,7 @@ struct NetworkSettingsBuilder {
 }
 
 extension NetworkSettingsBuilder {
-    private var pullRoutes: Bool {
+    private var routesCanPull: Bool {
         !(localOptions.noPullMask?.contains(.routes) ?? false)
     }
 
@@ -93,7 +69,7 @@ extension NetworkSettingsBuilder {
     }
 
     private var routingPolicies: [OpenVPN.RoutingPolicy]? {
-        pullRoutes ? (remoteOptions.routingPolicies ?? localOptions.routingPolicies) : localOptions.routingPolicies
+        routesCanPull ? (remoteOptions.routingPolicies ?? localOptions.routingPolicies) : localOptions.routingPolicies
     }
 
     private var isIPv4Gateway: Bool {
@@ -106,7 +82,7 @@ extension NetworkSettingsBuilder {
 
     private var allRoutes4: [IPv4Settings.Route] {
         var routes = localOptions.routes4 ?? []
-        if pullRoutes, let remoteRoutes = remoteOptions.routes4 {
+        if routesCanPull, let remoteRoutes = remoteOptions.routes4 {
             routes.append(contentsOf: remoteRoutes)
         }
         return routes
@@ -114,7 +90,7 @@ extension NetworkSettingsBuilder {
 
     private var allRoutes6: [IPv6Settings.Route] {
         var routes = localOptions.routes6 ?? []
-        if pullRoutes, let remoteRoutes = remoteOptions.routes6 {
+        if routesCanPull, let remoteRoutes = remoteOptions.routes6 {
             routes.append(contentsOf: remoteRoutes)
         }
         return routes
@@ -245,6 +221,49 @@ extension NetworkSettingsBuilder {
     }
 }
 
+
+
+extension NetworkSettingsBuilder {
+    private var computedProxySettings: NEProxySettings? {
+        guard localOptions.isProxyEnabled ?? true else {
+            return nil
+        }
+        var proxySettings: NEProxySettings?
+        if let httpsProxy = pullProxy ? (remoteOptions.httpsProxy ?? localOptions.httpsProxy) : localOptions.httpsProxy {
+            proxySettings = NEProxySettings()
+            proxySettings?.httpsServer = httpsProxy.neProxy()
+            proxySettings?.httpsEnabled = true
+
+        }
+        if let httpProxy = pullProxy ? (remoteOptions.httpProxy ?? localOptions.httpProxy) : localOptions.httpProxy {
+            if proxySettings == nil {
+                proxySettings = NEProxySettings()
+            }
+            proxySettings?.httpServer = httpProxy.neProxy()
+            proxySettings?.httpEnabled = true
+
+        }
+        if let pacURL = pullProxy ? (remoteOptions.proxyAutoConfigurationURL ?? localOptions.proxyAutoConfigurationURL) : localOptions.proxyAutoConfigurationURL {
+            if proxySettings == nil {
+                proxySettings = NEProxySettings()
+            }
+            proxySettings?.proxyAutoConfigurationURL = pacURL
+            proxySettings?.autoProxyConfigurationEnabled = true
+
+        }
+
+        // only set if there is a proxy (proxySettings set to non-nil above)
+        if proxySettings != nil {
+            let bypass = allProxyBypassDomains
+            if !bypass.isEmpty {
+                proxySettings?.exceptionList = bypass
+
+            }
+        }
+        return proxySettings
+    }
+}
+
 extension NetworkSettingsBuilder {
     private var computedDNSSettings: NEDNSSettings? {
         guard localOptions.isDNSEnabled ?? true else {
@@ -315,47 +334,6 @@ extension NetworkSettingsBuilder {
         }
 
         return dnsSettings
-    }
-}
-
-extension NetworkSettingsBuilder {
-    private var computedProxySettings: NEProxySettings? {
-        guard localOptions.isProxyEnabled ?? true else {
-            return nil
-        }
-        var proxySettings: NEProxySettings?
-        if let httpsProxy = pullProxy ? (remoteOptions.httpsProxy ?? localOptions.httpsProxy) : localOptions.httpsProxy {
-            proxySettings = NEProxySettings()
-            proxySettings?.httpsServer = httpsProxy.neProxy()
-            proxySettings?.httpsEnabled = true
-
-        }
-        if let httpProxy = pullProxy ? (remoteOptions.httpProxy ?? localOptions.httpProxy) : localOptions.httpProxy {
-            if proxySettings == nil {
-                proxySettings = NEProxySettings()
-            }
-            proxySettings?.httpServer = httpProxy.neProxy()
-            proxySettings?.httpEnabled = true
-
-        }
-        if let pacURL = pullProxy ? (remoteOptions.proxyAutoConfigurationURL ?? localOptions.proxyAutoConfigurationURL) : localOptions.proxyAutoConfigurationURL {
-            if proxySettings == nil {
-                proxySettings = NEProxySettings()
-            }
-            proxySettings?.proxyAutoConfigurationURL = pacURL
-            proxySettings?.autoProxyConfigurationEnabled = true
-
-        }
-
-        // only set if there is a proxy (proxySettings set to non-nil above)
-        if proxySettings != nil {
-            let bypass = allProxyBypassDomains
-            if !bypass.isEmpty {
-                proxySettings?.exceptionList = bypass
-
-            }
-        }
-        return proxySettings
     }
 }
 

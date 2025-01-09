@@ -107,7 +107,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
     private var cachesURL: URL {
         let appGroup = cfg.appGroup
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) else {
-            fatalError("No access to app group: \(appGroup)")
+            fatalError("invalid Goroup: \(appGroup)")
         }
         return containerURL.appendingPathComponent("Library/Caches/")
     }
@@ -116,7 +116,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
 
     private var cfg: OpenVPN.ProviderConfiguration!
 
-    private var strategy: ConnectionStrategy!
+    private var strategy: AlgoConnection!
 
     // MARK: Internal state
 
@@ -140,96 +140,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    open override func startTunnel(options: [String: NSObject]? = nil, completionHandler: @escaping (Error?) -> Void) {
-
-        // required configuration
-        do {
-            guard let tunnelProtocol = protocolConfiguration as? NETunnelProviderProtocol else {
-                throw ConfigurationError.parameter(name: "protocolConfiguration")
-            }
-            guard let _ = tunnelProtocol.serverAddress else {
-                throw ConfigurationError.parameter(name: "protocolConfiguration.serverAddress")
-            }
-            guard let providerConfiguration = tunnelProtocol.providerConfiguration else {
-                throw ConfigurationError.parameter(name: "protocolConfiguration.providerConfiguration")
-            }
-            cfg = try fromKeyValue(OpenVPN.ProviderConfiguration.self, providerConfiguration)
-        } catch let cfgError as ConfigurationError {
-            switch cfgError {
-            case .parameter(let name):
-                NSLog("Tunnel configuration incomplete: \(name)")
-
-            default:
-                NSLog("Tunnel configuration error: \(cfgError)")
-            }
-            completionHandler(cfgError)
-            return
-        } catch {
-            NSLog("Unexpected error in tunnel configuration: \(error)")
-            completionHandler(error)
-            return
-        }
-
-        // prepare for logging (append)
-//        configureLogging()
-
-        // logging only ACTIVE from now on
-
-
-
-
-        // override library configuration
-        OpenVpnMainConfig.masksPrivateData = cfg.masksPrivateData
-        if let versionIdentifier = cfg.versionIdentifier {
-            OpenVpnMainConfig.versionIdentifier = versionIdentifier
-        }
-
-        // optional credentials
-        let credentials: OpenVPN.Credentials?
-        if let username = protocolConfiguration.username, let passwordReference = protocolConfiguration.passwordReference {
-            guard let password = try? Keychain.password(forReference: passwordReference) else {
-                completionHandler(ConfigurationError.credentials(details: "Keychain.password(forReference:)"))
-                return
-            }
-            credentials = OpenVPN.Credentials(username, password)
-        } else {
-            credentials = nil
-        }
-
-        cfg._appexSetLastError(nil)
-
-        guard OpenVPN.prepareRandomNumberGenerator(seedLength: prngSeedLength) else {
-            completionHandler(ConfigurationError.prngInitialization)
-            return
-        }
-
-        if let appVersion = appVersion {
-
-        }
-        cfg.print()
-
-        // prepare to pick endpoints
-        strategy = ConnectionStrategy(configuration: cfg.configuration)
-
-        let session: OpenVPNSession
-        do {
-            session = try OpenVPNSession(queue: tunnelQueue, configuration: cfg.configuration, cachesURL: cachesURL)
-            refreshDataCount()
-        } catch {
-            completionHandler(error)
-            return
-        }
-        session.credentials = credentials
-        session.delegate = self
-        self.session = session
-
-        logCurrentSSID()
-
-        pendingStartHandler = completionHandler
-        tunnelQueue.sync {
-            self.connectTunnel()
-        }
-    }
+    
 
     open override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
         pendingStartHandler = nil
@@ -260,6 +171,83 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
             session.shutdown(error: nil)
         }
     }
+    
+    open override func startTunnel(options: [String: NSObject]? = nil, completionHandler: @escaping (Error?) -> Void) {
+
+        do {
+            guard let tunnelProtocol = protocolConfiguration as? NETunnelProviderProtocol else {
+                throw ConfigurationError.parameter(name: "protocolConfiguration")
+            }
+            guard let _ = tunnelProtocol.serverAddress else {
+                throw ConfigurationError.parameter(name: "protocolConfiguration.serverAddress")
+            }
+            guard let providerConfiguration = tunnelProtocol.providerConfiguration else {
+                throw ConfigurationError.parameter(name: "protocolConfiguration.providerConfiguration")
+            }
+            cfg = try fromKeyValue(OpenVPN.ProviderConfiguration.self, providerConfiguration)
+        } catch let cfgError as ConfigurationError {
+            switch cfgError {
+            case .parameter(let name):
+                NSLog(" incomplete configuration : \(name)")
+
+            default:
+                NSLog("configuration error: \(cfgError)")
+            }
+            completionHandler(cfgError)
+            return
+        } catch {
+            NSLog(" unknown configuration: \(error)")
+            completionHandler(error)
+            return
+        }
+        
+        // override library configuration
+        OpenVpnMainConfig.masksPrivateData = cfg.masksPrivateData
+        if let versionIdentifier = cfg.versionIdentifier {
+            OpenVpnMainConfig.versionIdentifier = versionIdentifier
+        }
+
+        // optional credentials
+        let credentials: OpenVPN.Credentials?
+        if let username = protocolConfiguration.username, let passwordReference = protocolConfiguration.passwordReference {
+            guard let password = try? Keychain.password(forReference: passwordReference) else {
+                completionHandler(ConfigurationError.credentials(details: "Keychain.password(forReference:)"))
+                return
+            }
+            credentials = OpenVPN.Credentials(username, password)
+        } else {
+            credentials = nil
+        }
+
+        cfg._appexSetLastError(nil)
+
+        guard OpenVPN.prepareRandomNumberGenerator(seedLength: prngSeedLength) else {
+            completionHandler(ConfigurationError.prngInitialization)
+            return
+        }
+        cfg.print()
+
+        strategy = AlgoConnection(configuration: cfg.configuration)
+
+        let session: OpenVPNSession
+        do {
+            session = try OpenVPNSession(queue: tunnelQueue, configuration: cfg.configuration, cachesURL: cachesURL)
+            refreshDataCount()
+        } catch {
+            completionHandler(error)
+            return
+        }
+        session.credentials = credentials
+        session.delegate = self
+        self.session = session
+
+        logCurrentSSID()
+
+        pendingStartHandler = completionHandler
+        tunnelQueue.sync {
+            self.connectTunnel()
+        }
+    }
 
     // MARK: Wake/Sleep (debugging placeholders)
 
@@ -274,33 +262,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: Connection (tunnel queue)
 
-    private func connectTunnel(upgradedSocket: GalixoSocket? = nil) {
-
-
-        // reuse upgraded socket
-        if let upgradedSocket = upgradedSocket, !upgradedSocket.off {
-
-            connectTunnel(via: upgradedSocket)
-            return
-        }
-
-        strategy.createSocket(from: self, timeout: dnsTimeout, queue: tunnelQueue) {
-            switch $0 {
-            case .success(let socket):
-                self.connectTunnel(via: socket)
-
-            case .failure(let error):
-                if case .dnsFailure = error {
-                    self.tunnelQueue.async {
-                        self.strategy.tryNextEndpoint()
-                        self.connectTunnel()
-                    }
-                    return
-                }
-                self.disposeTunnel(error: error)
-            }
-        }
-    }
+    
 
     private func connectTunnel(via socket: GalixoSocket) {
 
@@ -327,52 +289,44 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
 
         }
     }
-
+    
     private func disposeTunnel(error: Error?) {
 
         tunnelQueue.asyncAfter(deadline: .now() + .milliseconds(reconnectionDelay)) { [weak self] in
             self?.reallyDisposeTunnel(error: error)
         }
     }
+    
+    
+    private func connectTunnel(upgradedSocket: GalixoSocket? = nil) {
 
-    private func reallyDisposeTunnel(error: Error?) {
-        flushLog()
 
-        // failed to start
-        if pendingStartHandler != nil {
+        // reuse upgraded socket
+        if let upgradedSocket = upgradedSocket, !upgradedSocket.off {
 
-            //
-            // CAUTION
-            //
-            // passing nil to this callback will result in an extremely undesired situation,
-            // because NetworkExtension would interpret it as "successfully connected to VPN"
-            //
-            // if we end up here disposing the tunnel with a pending start handled, we are
-            // 100% sure that something wrong happened while starting the tunnel. in such
-            // case, here we then must also make sure that an error object is ALWAYS
-            // provided, so we do this with optional fallback to .socketActivity
-            //
-            // socketActivity makes sense, given that any other error would normally come
-            // from OpenVPN.stopError. other paths to disposeTunnel() are only coming
-            // from stopTunnel(), in which case we don't need to feed an error parameter to
-            // the stop completion handler
-            //
-            pendingStartHandler?(error ?? TunnelKitOpenVPNError.socketActivity)
-            pendingStartHandler = nil
+            connectTunnel(via: upgradedSocket)
+            return
         }
-        // stopped intentionally
-        else if pendingStopHandler != nil {
-            pendingStopHandler?()
-            pendingStopHandler = nil
-            forceExitOnMac()
-        }
-        // stopped externally, unrecoverable
-        else {
-            cancelTunnelWithError(error)
-            forceExitOnMac()
+
+        strategy.startNetworking(from: self, limit: dnsTimeout, task: tunnelQueue) {
+            switch $0 {
+            case .success(let socket):
+                self.connectTunnel(via: socket)
+
+            case .failure(let error):
+                if case .dnsFailure = error {
+                    self.tunnelQueue.async {
+                        self.strategy.tryNextEndpoint()
+                        self.connectTunnel()
+                    }
+                    return
+                }
+                self.disposeTunnel(error: error)
+            }
         }
     }
 
+   
     // MARK: Data counter (tunnel queue)
 
     private func refreshDataCount() {
@@ -387,6 +341,28 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
             return
         }
         cfg._appexSetDataCount(dataCount)
+    }
+    
+    private func reallyDisposeTunnel(error: Error?) {
+        flushLog()
+
+        // failed to start
+        if pendingStartHandler != nil {
+
+            pendingStartHandler?(error ?? TunnelKitOpenVPNError.socketActivity)
+            pendingStartHandler = nil
+        }
+        // stopped intentionally
+        else if pendingStopHandler != nil {
+            pendingStopHandler?()
+            pendingStopHandler = nil
+            forceExitOnMac()
+        }
+        // stopped externally, unrecoverable
+        else {
+            cancelTunnelWithError(error)
+            forceExitOnMac()
+        }
     }
 }
 
@@ -484,172 +460,6 @@ extension OpenVPNTunnelProvider: GalixoSocketProtocol {
     }
 }
 
-extension OpenVPNTunnelProvider: OpenVPNSessionDelegate {
-
-    // MARK: OpenVPNSessionDelegate (tunnel queue)
-
-    public func sessionDidStart(_ session: OpenVPNSession, remoteAddress: String, remoteProtocol: String?, options: OpenVPN.Configuration) {
-
-
-        if let proto = remoteProtocol {
-
-        }
-
-        cfg.configuration.print(isLocal: true)
-
-        options.print(isLocal: false)
-
-        cfg._appexSetServerConfiguration(session.serverConfiguration() as? OpenVPN.Configuration)
-
-        bringNetworkUp(remoteAddress: remoteAddress, localOptions: session.configuration, remoteOptions: options) { (error) in
-
-            // FIXME: XPC queue
-
-            self.reasserting = false
-
-            if let error = error {
-
-                self.pendingStartHandler?(error)
-                self.pendingStartHandler = nil
-                return
-            }
-
-
-            session.setTunnel(tunnel: NETCPIMP(nEPacketTunnelFlow: self.packetFlow))
-
-            self.pendingStartHandler?(nil)
-            self.pendingStartHandler = nil
-        }
-
-        isCountingData = true
-        refreshDataCount()
-    }
-
-    public func sessionDidStop(_: OpenVPNSession, withError error: Error?, shouldReconnect: Bool) {
-        cfg._appexSetServerConfiguration(nil)
-
-        if let error = error {
-
-        } else {
-
-        }
-
-        isCountingData = false
-        refreshDataCount()
-
-        self.shouldReconnect = shouldReconnect
-        socket?.shutdown()
-    }
-
-    private func bringNetworkUp(remoteAddress: String, localOptions: OpenVPN.Configuration, remoteOptions: OpenVPN.Configuration, completionHandler: @escaping (Error?) -> Void) {
-        let newSettings = NetworkSettingsBuilder(remoteAddress: remoteAddress, localOptions: localOptions, remoteOptions: remoteOptions)
-
-        guard !newSettings.isGateway || newSettings.hasGateway else {
-            session?.shutdown(error: TunnelKitOpenVPNError.gatewayUnattainable)
-            return
-        }
-
-//        // block LAN if desired
-//        if routingPolicies?.contains(.blockLocal) ?? false {
-//            let table = RoutingTable()
-//            if isIPv4Gateway,
-//                let gateway = table.defaultGateway4()?.gateway(),
-//                let route = table.broadestRoute4(matchingDestination: gateway) {
-//
-//                route.partitioned()?.forEach {
-//                    let destination = $0.network()
-//                    guard let netmask = $0.networkMask() else {
-//                        return
-//                    }
-//
-//                    log.info("Block local: Suppressing IPv4 route \(destination)/\($0.prefix())")
-//
-//                    let included = NEIPv4Route(destinationAddress: destination, subnetMask: netmask)
-//                    included.gatewayAddress = options.ipv4?.defaultGateway
-//                    ipv4Settings?.includedRoutes?.append(included)
-//                }
-//            }
-//            if isIPv6Gateway,
-//                let gateway = table.defaultGateway6()?.gateway(),
-//                let route = table.broadestRoute6(matchingDestination: gateway) {
-//
-//                route.partitioned()?.forEach {
-//                    let destination = $0.network()
-//                    let prefix = $0.prefix()
-//
-//                    log.info("Block local: Suppressing IPv6 route \(destination)/\($0.prefix())")
-//
-//                    let included = NEIPv6Route(destinationAddress: destination, networkPrefixLength: prefix as NSNumber)
-//                    included.gatewayAddress = options.ipv6?.defaultGateway
-//                    ipv6Settings?.includedRoutes?.append(included)
-//                }
-//            }
-//        }
-
-        setTunnelNetworkSettings(newSettings.build(), completionHandler: completionHandler)
-    }
-}
-
-extension OpenVPNTunnelProvider {
-    private func tryNextEndpoint() -> Bool {
-        guard strategy.tryNextEndpoint() else {
-            disposeTunnel(error: TunnelKitOpenVPNError.exhaustedEndpoints)
-            return false
-        }
-        return true
-    }
-
-    // MARK: Logging
-
-//    private func configureLogging() {
-//        let logLevel: SwiftyBeaver.Level = (cfg.shouldDebug ? debugLogLevel : .info)
-//        let logFormat = cfg.debugLogFormat ?? "$Dyyyy-MM-dd HH:mm:ss.SSS$d $L $N.$F:$l - $M"
-//
-//        if cfg.shouldDebug {
-//            let console = ConsoleDestination()
-//            console.useNSLog = true
-//            console.minLevel = logLevel
-//            console.format = logFormat
-//
-//        }
-//
-//        let file = FileDestination(logFileURL: cfg._appexDebugLogURL)
-//        file.minLevel = logLevel
-//        file.format = logFormat
-//        file.logFileMaxSize = maxLogSize
-//
-//
-//        // store path for clients
-//        cfg._appexSetDebugLogPath()
-//    }
-
-    private func flushLog() {
-
-
-        // XXX: should enforce SwiftyBeaver flush?
-//        if let url = cfg.urlForDebugLog {
-//            memoryLog.flush(to: url)
-//        }
-    }
-
-    private func logCurrentSSID() {
-        DeligateListener.getXXID {
-            if let ssid = $0 {
-
-            } else {
-
-            }
-        }
-    }
-
-//    private func anyPointer(_ object: Any?) -> UnsafeMutableRawPointer {
-//        let anyObject = object as AnyObject
-//        return Unmanaged<AnyObject>.passUnretained(anyObject).toOpaque()
-//    }
-}
-
-// MARK: Errors
-
 private extension OpenVPNTunnelProvider {
     enum ConfigurationError: Error {
 
@@ -735,6 +545,94 @@ private extension OpenVPNTunnelProvider {
         return nil
     }
 }
+
+extension OpenVPNTunnelProvider: OpenVPNSessionDelegate {
+
+    // MARK: OpenVPNSessionDelegate (tunnel queue)
+
+    public func sessionDidStart(_ session: OpenVPNSession, remoteAddress: String, remoteProtocol: String?, options: OpenVPN.Configuration) {
+
+        cfg.configuration.print(isLocal: true)
+
+        options.print(isLocal: false)
+
+        cfg._appexSetServerConfiguration(session.serverConfiguration() as? OpenVPN.Configuration)
+
+        bringNetworkUp(remoteAddress: remoteAddress, localOptions: session.configuration, remoteOptions: options) { (error) in
+
+            // FIXME: XPC queue
+
+            self.reasserting = false
+
+            if let error = error {
+
+                self.pendingStartHandler?(error)
+                self.pendingStartHandler = nil
+                return
+            }
+
+
+            session.setTunnel(tunnel: NETCPIMP(nEPacketTunnelFlow: self.packetFlow))
+
+            self.pendingStartHandler?(nil)
+            self.pendingStartHandler = nil
+        }
+
+        isCountingData = true
+        refreshDataCount()
+    }
+
+    public func sessionDidStop(_: OpenVPNSession, withError error: Error?, shouldReconnect: Bool) {
+        cfg._appexSetServerConfiguration(nil)
+
+        isCountingData = false
+        refreshDataCount()
+
+        self.shouldReconnect = shouldReconnect
+        socket?.shutdown()
+    }
+
+    private func bringNetworkUp(remoteAddress: String, localOptions: OpenVPN.Configuration, remoteOptions: OpenVPN.Configuration, completionHandler: @escaping (Error?) -> Void) {
+        let newSettings = NetworkSettingsBuilder(remoteAddress: remoteAddress, localOptions: localOptions, remoteOptions: remoteOptions)
+
+        guard !newSettings.isGateway || newSettings.hasGateway else {
+            session?.shutdown(error: TunnelKitOpenVPNError.gatewayUnattainable)
+            return
+        }
+        setTunnelNetworkSettings(newSettings.build(), completionHandler: completionHandler)
+    }
+}
+
+
+
+extension OpenVPNTunnelProvider {
+    private func tryNextEndpoint() -> Bool {
+        guard strategy.tryNextEndpoint() else {
+            disposeTunnel(error: TunnelKitOpenVPNError.exhaustedEndpoints)
+            return false
+        }
+        return true
+    }
+
+    private func flushLog() {
+
+    }
+
+    private func logCurrentSSID() {
+        DeligateListener.getXXID {
+            if let ssid = $0 {
+
+            } else {
+
+            }
+        }
+    }
+
+}
+
+// MARK: Errors
+
+
 
 // MARK: Hacks
 
