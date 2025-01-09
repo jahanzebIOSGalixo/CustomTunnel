@@ -26,19 +26,17 @@
 import Foundation
 import NetworkExtension
 
-
-
-
 /// `VPN` based on the NetworkExtension framework.
-public class NetworkExtensionVPN: VPN {
+public class ImplementationNExtension: MainVpnDelegate {
 
     /**
      Initializes a provider.
      */
     public init() {
         let nc = NotificationCenter.default
-        nc.addObserver(self, selector: #selector(vpnDidUpdate(_:)), name: .NEVPNStatusDidChange, object: nil)
         nc.addObserver(self, selector: #selector(vpnDidReinstall(_:)), name: .NEVPNConfigurationChange, object: nil)
+        nc.addObserver(self, selector: #selector(vpnDidUpdate(_:)), name: .NEVPNStatusDidChange, object: nil)
+      
     }
 
     deinit {
@@ -47,35 +45,11 @@ public class NetworkExtensionVPN: VPN {
 
     // MARK: Public
 
-    public func prepare() async {
+    public func initalizeVpn() async {
         _ = try? await NETunnelProviderManager.loadAllFromPreferences()
     }
 
-    public func install(
-        _ tunnelBundleIdentifier: String,
-        configuration: MoreConfigDelegate,
-        extra: MoreSetting?
-    ) async throws {
-        _ = try await installReturningManager(
-            tunnelBundleIdentifier,
-            configuration: configuration,
-            extra: extra
-        )
-    }
-
-    public func reconnect(after: DispatchTimeInterval) async throws {
-        let managers = try await lookupAll()
-        guard let manager = managers.first else {
-            return
-        }
-        if manager.connection.status != .disconnected {
-            manager.connection.stopVPNTunnel()
-            try await Task.sleep(nanoseconds: after.nanoseconds)
-        }
-        try manager.connection.startVPNTunnel()
-    }
-
-    public func reconnect(
+    public func startConnection(
         _ tunnelBundleIdentifier: String,
         configuration: MoreConfigDelegate,
         extra: MoreSetting?,
@@ -97,8 +71,20 @@ public class NetworkExtensionVPN: VPN {
             throw error
         }
     }
+    
+    public func startConnection(after: DispatchTimeInterval) async throws {
+        let managers = try await lookupAll()
+        guard let manager = managers.first else {
+            return
+        }
+        if manager.connection.status != .disconnected {
+            manager.connection.stopVPNTunnel()
+            try await Task.sleep(nanoseconds: after.nanoseconds)
+        }
+        try manager.connection.startVPNTunnel()
+    }
 
-    public func disconnect() async {
+    public func stopConnection() async {
         guard let managers = try? await lookupAll() else {
             return
         }
@@ -113,7 +99,7 @@ public class NetworkExtensionVPN: VPN {
         }
     }
 
-    public func uninstall() async {
+    public func removeprofileConfiguration() async {
         guard let managers = try? await lookupAll() else {
             return
         }
@@ -124,6 +110,17 @@ public class NetworkExtensionVPN: VPN {
             m.connection.stopVPNTunnel()
             try? await m.removeFromPreferences()
         }
+    }
+    public func profileConfiguration(
+        _ tunnelBundleIdentifier: String,
+        configuration: MoreConfigDelegate,
+        extra: MoreSetting?
+    ) async throws {
+        _ = try await installReturningManager(
+            tunnelBundleIdentifier,
+            configuration: configuration,
+            extra: extra
+        )
     }
 
     // MARK: Helpers

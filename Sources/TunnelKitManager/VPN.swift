@@ -26,7 +26,7 @@
 import Foundation
 
 /// Helps controlling a VPN without messing with underlying implementations.
-public protocol VPN {
+public protocol MainVpnDelegate {
     associatedtype Configuration
 
     associatedtype Extra
@@ -34,7 +34,7 @@ public protocol VPN {
     /**
      Synchronizes with the current VPN state.
      */
-    func prepare() async
+    func initalizeVpn() async
 
     /**
      Installs the VPN profile.
@@ -43,7 +43,7 @@ public protocol VPN {
      - Parameter configuration: The configuration to install.
      - Parameter extra: Optional extra arguments.
      */
-    func install(
+    func profileConfiguration(
         _ tunnelBundleIdentifier: String,
         configuration: Configuration,
         extra: Extra?
@@ -54,7 +54,7 @@ public protocol VPN {
 
      - Parameter after: The reconnection delay.
      **/
-    func reconnect(
+    func startConnection(
         after: DispatchTimeInterval
     ) async throws
 
@@ -66,7 +66,7 @@ public protocol VPN {
      - Parameter extra: Optional extra arguments.
      - Parameter after: The reconnection delay.
      */
-    func reconnect(
+    func startConnection(
         _ tunnelBundleIdentifier: String,
         configuration: Configuration,
         extra: Extra?,
@@ -76,12 +76,12 @@ public protocol VPN {
     /**
      Disconnects from the VPN.
      */
-    func disconnect() async
+    func stopConnection() async
 
     /**
      Uninstalls the VPN profile.
      */
-    func uninstall() async
+    func removeprofileConfiguration() async
 }
 
 extension DispatchTimeInterval {
