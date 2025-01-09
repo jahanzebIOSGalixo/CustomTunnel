@@ -37,7 +37,7 @@
 import Foundation
 
 /// Represents a specific I/O interface meant to work at the link layer (e.g. TCP/IP).
-public protocol LinkInterface: IOInterface {
+public protocol LinkInterface: IOProtocol {
 
     /// When `true`, packets delivery is guaranteed.
     var isReliable: Bool { get }

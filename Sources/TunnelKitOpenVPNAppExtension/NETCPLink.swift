@@ -65,8 +65,8 @@ class NETCPLink: LinkInterface {
         return maxPacketSize
     }
 
-    func setReadHandler(queue: DispatchQueue, _ handler: @escaping ([Data]?, Error?) -> Void) {
-        loopReadPackets(queue, Data(), handler)
+    func readingCompletion(task: DispatchQueue, _ handler: @escaping ([Data]?, Error?) -> Void) {
+        loopReadPackets(task, Data(), handler)
     }
 
     private func loopReadPackets(_ queue: DispatchQueue, _ buffer: Data, _ handler: @escaping ([Data]?, Error?) -> Void) {
@@ -99,7 +99,7 @@ class NETCPLink: LinkInterface {
         }
     }
 
-    func writePacket(_ packet: Data, completionHandler: ((Error?) -> Void)?) {
+    func singleDataWritten(_ packet: Data, completionHandler: ((Error?) -> Void)?) {
         let stream = PacketStream.outboundStream(
             fromPacket: packet,
             xorMethod: xorMethod?.native ?? .none,
@@ -110,7 +110,7 @@ class NETCPLink: LinkInterface {
         }
     }
 
-    func writePackets(_ packets: [Data], completionHandler: ((Error?) -> Void)?) {
+    func multiplePacketsDataWritten(_ packets: [Data], completionHandler: ((Error?) -> Void)?) {
         let stream = PacketStream.outboundStream(
             fromPackets: packets,
             xorMethod: xorMethod?.native ?? .none,
@@ -122,9 +122,9 @@ class NETCPLink: LinkInterface {
     }
 }
 
-extension NETCPSocket: LinkProducer {
+extension NETCP: LinkProducer {
     public func link(userObject: Any?) -> LinkInterface {
         let xorMethod = userObject as? OpenVPN.XORMethod
-        return NETCPLink(impl: impl, maxPacketSize: nil, xorMethod: xorMethod)
+        return NETCPLink(impl: nwtpConnection, maxPacketSize: nil, xorMethod: xorMethod)
     }
 }

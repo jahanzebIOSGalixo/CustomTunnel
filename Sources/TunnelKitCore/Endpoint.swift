@@ -73,7 +73,7 @@ public struct Endpoint: RawRepresentable, Codable, Equatable, CustomStringConver
     // MARK: RawRepresentable
 
     public init?(rawValue: String) {
-        let components = Self.rx.groups(in: rawValue)
+        let components = Self.rx.galixoGrouping(in: rawValue)
         guard components.count == 3 else {
             return nil
         }

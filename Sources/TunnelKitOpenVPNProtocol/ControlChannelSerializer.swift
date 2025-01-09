@@ -67,7 +67,7 @@ extension OpenVPN.ControlChannel {
             guard end >= offset + PacketSessionIdLength else {
                 throw OpenVPNError.controlChannel(message: "Missing sessionId")
             }
-            let sessionId = packet.subdata(offset: offset, count: PacketSessionIdLength)
+            let sessionId = packet.galixoSubdata(offset: offset, count: PacketSessionIdLength)
             offset += PacketSessionIdLength
 
             guard end >= offset + 1 else {
@@ -92,7 +92,7 @@ extension OpenVPN.ControlChannel {
                 guard end >= offset + PacketSessionIdLength else {
                     throw OpenVPNError.controlChannel(message: "Missing remoteSessionId")
                 }
-                let remoteSessionId = packet.subdata(offset: offset, count: PacketSessionIdLength)
+                let remoteSessionId = packet.galixoSubdata(offset: offset, count: PacketSessionIdLength)
                 offset += PacketSessionIdLength
 
                 ackIds = ids
@@ -198,7 +198,7 @@ extension OpenVPN.ControlChannel {
             var authPacket = packet
             let authCount = authPacket.count
             try authPacket.withUnsafeMutableBytes {
-                let ptr = $0.bytePointer
+                let ptr = $0.galixoPointer
                 PacketSwapCopy(ptr, packet, prefixLength, authLength)
                 try decrypter.verifyBytes(ptr, length: authCount, flags: nil)
             }
@@ -280,10 +280,10 @@ extension OpenVPN.ControlChannel {
             var decryptedPacket = Data(count: decrypter.encryptionCapacity(withLength: encryptedCount))
             var decryptedCount = 0
             try packet.withUnsafeBytes {
-                let src = $0.bytePointer
+                let src = $0.galixoPointer
                 var flags = CryptoFlags(iv: nil, ivLength: 0, ad: src, adLength: adLength, forTesting: false)
                 try decryptedPacket.withUnsafeMutableBytes {
-                    let dest = $0.bytePointer
+                    let dest = $0.galixoPointer
                     try decrypter.decryptBytes(src + flags.adLength, length: encryptedCount, dest: dest + headerLength, destLength: &decryptedCount, flags: &flags)
                     memcpy(dest, src, headerLength)
                 }

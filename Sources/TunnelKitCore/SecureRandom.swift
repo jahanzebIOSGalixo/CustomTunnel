@@ -83,7 +83,7 @@ public class SecureRandom {
         var randomData = Data(count: length)
 
         try randomData.withUnsafeMutableBytes {
-            let randomBytes = $0.bytePointer
+            let randomBytes = $0.galixoPointer
             guard SecRandomCopyBytes(kSecRandomDefault, length, randomBytes) == 0 else {
                 throw TunnelKitCoreError.secureRandom(.randomGenerator)
             }

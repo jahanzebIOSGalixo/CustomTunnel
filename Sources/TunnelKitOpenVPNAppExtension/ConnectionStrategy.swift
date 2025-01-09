@@ -126,11 +126,11 @@ private extension NEProvider {
         switch endpoint.proto.socketType {
         case .udp, .udp4, .udp6:
             let impl = createUDPSession(to: ep, from: nil)
-            return NEUDPSocket(impl: impl)
+            return NEUDP(impl: impl)
 
         case .tcp, .tcp4, .tcp6:
             let impl = createTCPConnection(to: ep, enableTLS: false, tlsParameters: nil, delegate: nil)
-            return NETCPSocket(impl: impl)
+            return NETCP(impl: impl)
         }
     }
 }

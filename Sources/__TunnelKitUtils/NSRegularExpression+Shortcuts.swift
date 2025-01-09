@@ -1,68 +1,49 @@
-//
-//  NSRegularExpression+Shortcuts.swift
-//  TunnelKit
-//
-//  Created by Davide De Rosa on 9/9/18.
-//  Copyright (c) 2024 Davide De Rosa. All rights reserved.
-//
-//  https://github.com/passepartoutvpn
-//
-//  This file is part of TunnelKit.
-//
-//  TunnelKit is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-//
-//  TunnelKit is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-//
-//  You should have received a copy of the GNU General Public License
-//  along with TunnelKit.  If not, see <http://www.gnu.org/licenses/>.
-//
+//Created by Jahanzeb Sohail
+
 
 import Foundation
+
+extension NSRegularExpression {
+    public func galixoComponents(in input: String, using handler: ([String]) -> Void) {
+        enumerateMatches(in: input, options: [], range: NSRange(location: 0, length: input.utf16.count)) { match, _, _ in
+            guard let matchedRange = match?.range else { return }
+            let extractedMatch = (input as NSString).substring(with: matchedRange)
+            let filteredTokens = extractedMatch.split(separator: " ").map { String($0) }
+            handler(filteredTokens)
+        }
+    }
+
+    public func galixoArguments(in input: String, using handler: ([String]) -> Void) {
+        galixoComponents(in: input) { components in
+            guard !components.isEmpty else {
+                handler([])
+                return
+            }
+            var arguments = components
+            arguments.removeFirst()
+            handler(arguments)
+        }
+    }
+}
 
 extension NSRegularExpression {
     public convenience init(_ pattern: String) {
         try! self.init(pattern: pattern, options: [])
     }
 
-    public func groups(in string: String) -> [String] {
-        var results: [String] = []
-        enumerateMatches(in: string, options: [], range: NSRange(location: 0, length: string.count)) { result, _, _ in
-            guard let result = result else {
-                return
-            }
-            for i in 0..<numberOfCaptureGroups {
-                let subrange = result.range(at: i + 1)
-                let match = (string as NSString).substring(with: subrange)
-                results.append(match)
+    public func galixoGrouping(in input: String) -> [String] {
+        var extractedResults: [String] = []
+        enumerateMatches(in: input, options: [], range: NSRange(location: 0, length: input.utf16.count)) { match, _, _ in
+            guard let match = match else { return }
+            for groupIndex in 0..<numberOfCaptureGroups {
+                let rangeForGroup = match.range(at: groupIndex + 1)
+                if rangeForGroup.location != NSNotFound {
+                    let capturedText = (input as NSString).substring(with: rangeForGroup)
+                    extractedResults.append(capturedText)
+                }
             }
         }
-        return results
-    }
-}
-
-extension NSRegularExpression {
-    public func enumerateSpacedComponents(in string: String, using block: ([String]) -> Void) {
-        enumerateMatches(in: string, options: [], range: NSRange(location: 0, length: string.count)) { result, _, _ in
-            guard let range = result?.range else {
-                return
-            }
-            let match = (string as NSString).substring(with: range)
-            let tokens = match.components(separatedBy: " ").filter { !$0.isEmpty }
-            block(tokens)
-        }
+        return extractedResults
     }
 
-    public func enumerateSpacedArguments(in string: String, using block: ([String]) -> Void) {
-        enumerateSpacedComponents(in: string) { (tokens) in
-            var args = tokens
-            args.removeFirst()
-            block(args)
-        }
-    }
 }

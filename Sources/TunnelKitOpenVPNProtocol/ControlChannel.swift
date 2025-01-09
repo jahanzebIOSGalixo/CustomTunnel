@@ -138,7 +138,7 @@ extension OpenVPN {
 
             repeat {
                 let subPayloadLength = min(maxPacketSize, payload.count - offset)
-                let subPayloadData = payload.subdata(offset: offset, count: subPayloadLength)
+                let subPayloadData = payload.galixoSubdata(offset: offset, count: subPayloadLength)
                 let packet = ControlPacket(code: code, key: key, sessionId: sessionId, packetId: currentPacketId.outbound, payload: subPayloadData)
 
                 queue.outbound.append(packet)

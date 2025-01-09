@@ -153,7 +153,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
             guard let providerConfiguration = tunnelProtocol.providerConfiguration else {
                 throw ConfigurationError.parameter(name: "protocolConfiguration.providerConfiguration")
             }
-            cfg = try fromDictionary(OpenVPN.ProviderConfiguration.self, providerConfiguration)
+            cfg = try fromKeyValue(OpenVPN.ProviderConfiguration.self, providerConfiguration)
         } catch let cfgError as ConfigurationError {
             switch cfgError {
             case .parameter(let name):
@@ -244,7 +244,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
         }
 
         pendingStopHandler = completionHandler
-        tunnelQueue.schedule(after: .milliseconds(shutdownTimeout)) { [weak self] in
+        tunnelQueue.arrange(after: .milliseconds(shutdownTimeout)) { [weak self] in
             guard let weakSelf = self else {
                 return
             }
@@ -278,7 +278,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
 
 
         // reuse upgraded socket
-        if let upgradedSocket = upgradedSocket, !upgradedSocket.isShutdown {
+        if let upgradedSocket = upgradedSocket, !upgradedSocket.off {
 
             connectTunnel(via: upgradedSocket)
             return
@@ -308,7 +308,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
 
         self.socket = socket
         self.socket?.delegate = self
-        self.socket?.observe(queue: tunnelQueue, activeTimeout: socketTimeout)
+        self.socket?.listen(queue: tunnelQueue, activeTimeout: socketTimeout)
     }
 
     private func finishTunnelDisconnection(error: Error?) {
@@ -317,7 +317,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
         }
 
         socket?.delegate = nil
-        socket?.unobserve()
+        socket?.stopListening()
         socket = nil
 
         if let error = error {
@@ -379,7 +379,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
         guard dataCountInterval > 0 else {
             return
         }
-        tunnelQueue.schedule(after: .milliseconds(dataCountInterval)) { [weak self] in
+        tunnelQueue.arrange(after: .milliseconds(dataCountInterval)) { [weak self] in
             self?.refreshDataCount()
         }
         guard isCountingData, let session = session, let dataCount = session.dataCount() else {
@@ -400,7 +400,7 @@ extension OpenVPNTunnelProvider: GenericSocketDelegate {
         socket.shutdown()
 
         // fallback: TCP connection timeout suggests falling back
-        if let _ = socket as? NETCPSocket {
+        if let _ = socket as? NETCP {
             guard tryNextEndpoint() else {
                 // disposeTunnel
                 return
@@ -459,7 +459,7 @@ extension OpenVPNTunnelProvider: GenericSocketDelegate {
         // reconnect?
         if shouldReconnect {
 
-            tunnelQueue.schedule(after: .milliseconds(reconnectionDelay)) {
+            tunnelQueue.arrange(after: .milliseconds(reconnectionDelay)) {
 
                 // give up if shouldReconnect cleared in the meantime
                 guard self.shouldReconnect else {
@@ -515,7 +515,7 @@ extension OpenVPNTunnelProvider: OpenVPNSessionDelegate {
             }
 
 
-            session.setTunnel(tunnel: NETunnelInterface(impl: self.packetFlow))
+            session.setTunnel(tunnel: NETCPIMP(nEPacketTunnelFlow: self.packetFlow))
 
             self.pendingStartHandler?(nil)
             self.pendingStartHandler = nil

@@ -315,16 +315,16 @@ extension OpenVPN {
                 // MARK: Unsupported
 
                 // check blocks first
-                Regex.connection.enumerateSpacedComponents(in: line) { (_) in
+                Regex.connection.galixoComponents(in: line) { (_) in
                     unsupportedError = ConfigurationError.unsupportedConfiguration(option: "<connection> blocks")
                 }
-                Regex.fragment.enumerateSpacedComponents(in: line) { (_) in
+                Regex.fragment.galixoComponents(in: line) { (_) in
                     unsupportedError = ConfigurationError.unsupportedConfiguration(option: "fragment")
                 }
-                Regex.connectionProxy.enumerateSpacedComponents(in: line) { (_) in
+                Regex.connectionProxy.galixoComponents(in: line) { (_) in
                     unsupportedError = ConfigurationError.unsupportedConfiguration(option: "proxy: \"\(line)\"")
                 }
-                Regex.externalFiles.enumerateSpacedComponents(in: line) { (_) in
+                Regex.externalFiles.galixoComponents(in: line) { (_) in
                     unsupportedError = ConfigurationError.unsupportedConfiguration(option: "external file: \"\(line)\"")
                 }
                 if line.contains("mtu") || line.contains("mssfix") {
@@ -334,7 +334,7 @@ extension OpenVPN {
                 // MARK: Continuation
 
                 var isContinuation = false
-                Regex.continuation.enumerateSpacedArguments(in: line) {
+                Regex.continuation.galixoArguments(in: line) {
                     isContinuation = ($0.first == "2")
                 }
                 guard !isContinuation else {
@@ -345,7 +345,7 @@ extension OpenVPN {
 
                 if unsupportedError == nil {
                     if currentBlockName == nil {
-                        Regex.blockBegin.enumerateSpacedComponents(in: line) {
+                        Regex.blockBegin.galixoComponents(in: line) {
                             isHandled = true
                             let tag = $0.first!
                             let from = tag.index(after: tag.startIndex)
@@ -355,7 +355,7 @@ extension OpenVPN {
                             currentBlock = []
                         }
                     }
-                    Regex.blockEnd.enumerateSpacedComponents(in: line) {
+                    Regex.blockEnd.galixoComponents(in: line) {
                         isHandled = true
                         let tag = $0.first!
                         let from = tag.index(tag.startIndex, offsetBy: 2)
@@ -401,14 +401,14 @@ extension OpenVPN {
 
                 // MARK: General
 
-                Regex.cipher.enumerateSpacedArguments(in: line) {
+                Regex.cipher.galixoArguments(in: line) {
                     isHandled = true
                     guard let rawValue = $0.first else {
                         return
                     }
                     optCipher = Cipher(rawValue: rawValue.uppercased())
                 }
-                Regex.dataCiphers.enumerateSpacedArguments(in: line) {
+                Regex.dataCiphers.galixoArguments(in: line) {
                     isHandled = true
                     guard let rawValue = $0.first else {
                         return
@@ -422,14 +422,14 @@ extension OpenVPN {
                         optDataCiphers?.append(cipher)
                     }
                 }
-                Regex.dataCiphersFallback.enumerateSpacedArguments(in: line) {
+                Regex.dataCiphersFallback.galixoArguments(in: line) {
                     isHandled = true
                     guard let rawValue = $0.first else {
                         return
                     }
                     optDataCiphersFallback = Cipher(rawValue: rawValue.uppercased())
                 }
-                Regex.auth.enumerateSpacedArguments(in: line) {
+                Regex.auth.galixoArguments(in: line) {
                     isHandled = true
                     guard let rawValue = $0.first else {
                         return
@@ -439,7 +439,7 @@ extension OpenVPN {
                         unsupportedError = ConfigurationError.unsupportedConfiguration(option: "auth \(rawValue)")
                     }
                 }
-                Regex.compLZO.enumerateSpacedArguments(in: line) {
+                Regex.compLZO.galixoArguments(in: line) {
                     isHandled = true
                     optCompressionFraming = .compLZO
 
@@ -457,7 +457,7 @@ extension OpenVPN {
                         optCompressionAlgorithm = (arg == "no") ? .disabled : .LZO
                     }
                 }
-                Regex.compress.enumerateSpacedArguments(in: line) {
+                Regex.compress.galixoArguments(in: line) {
                     isHandled = true
                     optCompressionFraming = .compress
 
@@ -487,28 +487,28 @@ extension OpenVPN {
                         }
                     }
                 }
-                Regex.keyDirection.enumerateSpacedArguments(in: line) {
+                Regex.keyDirection.galixoArguments(in: line) {
                     isHandled = true
                     guard let arg = $0.first, let value = Int(arg) else {
                         return
                     }
                     optKeyDirection = StaticKey.Direction(rawValue: value)
                 }
-                Regex.ping.enumerateSpacedArguments(in: line) {
+                Regex.ping.galixoArguments(in: line) {
                     isHandled = true
                     guard let arg = $0.first else {
                         return
                     }
                     optKeepAliveSeconds = TimeInterval(arg)
                 }
-                Regex.pingRestart.enumerateSpacedArguments(in: line) {
+                Regex.pingRestart.galixoArguments(in: line) {
                     isHandled = true
                     guard let arg = $0.first else {
                         return
                     }
                     optKeepAliveTimeoutSeconds = TimeInterval(arg)
                 }
-                Regex.keepAlive.enumerateSpacedArguments(in: line) {
+                Regex.keepAlive.galixoArguments(in: line) {
                     isHandled = true
                     guard let ping = $0.first, let pingRestart = $0.last else {
                         return
@@ -516,7 +516,7 @@ extension OpenVPN {
                     optKeepAliveSeconds = TimeInterval(ping)
                     optKeepAliveTimeoutSeconds = TimeInterval(pingRestart)
                 }
-                Regex.renegSec.enumerateSpacedArguments(in: line) {
+                Regex.renegSec.galixoArguments(in: line) {
                     isHandled = true
                     guard let arg = $0.first else {
                         return
@@ -526,7 +526,7 @@ extension OpenVPN {
 
                 // MARK: Client
 
-                Regex.proto.enumerateSpacedArguments(in: line) {
+                Regex.proto.galixoArguments(in: line) {
                     isHandled = true
                     guard let str = $0.first else {
                         return
@@ -536,14 +536,14 @@ extension OpenVPN {
                         unsupportedError = ConfigurationError.unsupportedConfiguration(option: "proto \(str)")
                     }
                 }
-                Regex.port.enumerateSpacedArguments(in: line) {
+                Regex.port.galixoArguments(in: line) {
                     isHandled = true
                     guard let str = $0.first else {
                         return
                     }
                     optDefaultPort = UInt16(str)
                 }
-                Regex.remote.enumerateSpacedArguments(in: line) {
+                Regex.remote.galixoArguments(in: line) {
                     isHandled = true
                     guard let hostname = $0.first else {
                         return
@@ -564,51 +564,51 @@ extension OpenVPN {
                     // replace private data
                     strippedLine = strippedComponents.joined(separator: " ")
                 }
-                Regex.eku.enumerateSpacedComponents(in: line) { (_) in
+                Regex.eku.galixoComponents(in: line) { (_) in
                     isHandled = true
                     optChecksEKU = true
                 }
-                Regex.remoteRandom.enumerateSpacedComponents(in: line) { (_) in
+                Regex.remoteRandom.galixoComponents(in: line) { (_) in
                     isHandled = true
                     optRandomizeEndpoint = true
                 }
-                Regex.remoteRandomHostname.enumerateSpacedComponents(in: line) { _ in
+                Regex.remoteRandomHostname.galixoComponents(in: line) { _ in
                     isHandled = true
                     optRandomizeHostnames = true
                 }
-                Regex.mtu.enumerateSpacedArguments(in: line) {
+                Regex.mtu.galixoArguments(in: line) {
                     isHandled = true
                     guard let str = $0.first else {
                         return
                     }
                     optMTU = Int(str)
                 }
-                Regex.authUserPass.enumerateSpacedComponents(in: line) { _ in
+                Regex.authUserPass.galixoComponents(in: line) { _ in
                     isHandled = true
                     authUserPass = true
                 }
 
                 // MARK: Server
 
-                Regex.authToken.enumerateSpacedArguments(in: line) {
+                Regex.authToken.galixoArguments(in: line) {
                     optAuthToken = $0[0]
                 }
-                Regex.peerId.enumerateSpacedArguments(in: line) {
+                Regex.peerId.galixoArguments(in: line) {
                     optPeerId = UInt32($0[0])
                 }
 
                 // MARK: Routing
 
-                Regex.topology.enumerateSpacedArguments(in: line) {
+                Regex.topology.galixoArguments(in: line) {
                     optTopology = $0.first
                 }
-                Regex.ifconfig.enumerateSpacedArguments(in: line) {
+                Regex.ifconfig.galixoArguments(in: line) {
                     optIfconfig4Arguments = $0
                 }
-                Regex.ifconfig6.enumerateSpacedArguments(in: line) {
+                Regex.ifconfig6.galixoArguments(in: line) {
                     optIfconfig6Arguments = $0
                 }
-                Regex.route.enumerateSpacedArguments(in: line) {
+                Regex.route.galixoArguments(in: line) {
                     let routeEntryArguments = $0
 
                     let address = routeEntryArguments[0]
@@ -622,7 +622,7 @@ extension OpenVPN {
                     }
                     optRoutes4?.append((address, mask, gateway))
                 }
-                Regex.route6.enumerateSpacedArguments(in: line) {
+                Regex.route6.galixoArguments(in: line) {
                     let routeEntryArguments = $0
 
                     let destinationComponents = routeEntryArguments[0].components(separatedBy: "/")
@@ -643,10 +643,10 @@ extension OpenVPN {
                     }
                     optRoutes6?.append((destination, prefix, gateway))
                 }
-                Regex.gateway.enumerateSpacedArguments(in: line) {
+                Regex.gateway.galixoArguments(in: line) {
                     optGateway4Arguments = $0
                 }
-                Regex.dns.enumerateSpacedArguments(in: line) {
+                Regex.dns.galixoArguments(in: line) {
                     guard $0.count == 2 else {
                         return
                     }
@@ -655,13 +655,13 @@ extension OpenVPN {
                     }
                     optDNSServers?.append($0[1])
                 }
-                Regex.domain.enumerateSpacedArguments(in: line) {
+                Regex.domain.galixoArguments(in: line) {
                     guard $0.count == 2 else {
                         return
                     }
                     optDomain = $0[1]
                 }
-                Regex.domainSearch.enumerateSpacedArguments(in: line) {
+                Regex.domainSearch.galixoArguments(in: line) {
                     guard $0.count == 2 else {
                         return
                     }
@@ -670,7 +670,7 @@ extension OpenVPN {
                     }
                     optSearchDomains?.append($0[1])
                 }
-                Regex.proxy.enumerateSpacedArguments(in: line) {
+                Regex.proxy.galixoArguments(in: line) {
                     if $0.count == 2 {
                         guard let url = URL(string: $0[1]) else {
                             unsupportedError = ConfigurationError.malformed(option: "dhcp-option PROXY_AUTO_CONFIG_URL has malformed URL")
@@ -694,14 +694,14 @@ extension OpenVPN {
                         break
                     }
                 }
-                Regex.proxyBypass.enumerateSpacedArguments(in: line) {
+                Regex.proxyBypass.galixoArguments(in: line) {
                     guard !$0.isEmpty else {
                         return
                     }
                     optProxyBypass = $0
                     optProxyBypass?.removeFirst()
                 }
-                Regex.redirectGateway.enumerateSpacedArguments(in: line) {
+                Regex.redirectGateway.galixoArguments(in: line) {
 
                     // redirect IPv4 by default
                     optRedirectGateway = [.def1]
@@ -713,13 +713,13 @@ extension OpenVPN {
                         optRedirectGateway?.insert(opt)
                     }
                 }
-                Regex.routeNoPull.enumerateSpacedComponents(in: line) { _ in
+                Regex.routeNoPull.galixoComponents(in: line) { _ in
                     optRouteNoPull = true
                 }
 
                 // MARK: Extra
 
-                Regex.xorInfo.enumerateSpacedArguments(in: line) {
+                Regex.xorInfo.galixoArguments(in: line) {
                     isHandled = true
                     guard !$0.isEmpty else {
                         return

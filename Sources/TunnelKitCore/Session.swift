@@ -61,7 +61,7 @@ public protocol Session {
      - Postcondition: The VPN data channel is open.
      - Parameter tunnel: The `TunnelInterface` on which to exchange the VPN data traffic.
      */
-    func setTunnel(tunnel: TunnelInterface)
+    func setTunnel(tunnel: TunnelProtocol)
 
     /**
      Returns the current data bytes count.

@@ -144,7 +144,7 @@ public class OpenVPNSession: Session {
 
     private var link: LinkInterface?
 
-    private var tunnel: TunnelInterface?
+    private var tunnel: TunnelProtocol?
 
     private var isReliableLink: Bool {
         return link?.isReliable ?? false
@@ -266,7 +266,7 @@ public class OpenVPNSession: Session {
         loopLink()
     }
 
-    public func setTunnel(tunnel: TunnelInterface) {
+    public func setTunnel(tunnel: TunnelProtocol) {
         guard self.tunnel == nil else {
 
             return
@@ -323,7 +323,7 @@ public class OpenVPNSession: Session {
         continuatedPushReplyMessage = nil
         pushReply = nil
         link = nil
-        if !(tunnel?.isPersistent ?? false) {
+        if !(tunnel?.constant ?? false) {
             tunnel = nil
         }
 
@@ -381,7 +381,7 @@ public class OpenVPNSession: Session {
     // Ruby: udp_loop
     private func loopLink() {
         let loopedLink = link
-        loopedLink?.setReadHandler(queue: queue) { [weak self] (newPackets, error) in
+        loopedLink?.readingCompletion(task: queue) { [weak self] (newPackets, error) in
             guard self?.link === loopedLink else {
 
                 return
@@ -404,7 +404,7 @@ public class OpenVPNSession: Session {
 
     // Ruby: tun_loop
     private func loopTunnel() {
-        tunnel?.setReadHandler(queue: queue) { [weak self] (newPackets, error) in
+        tunnel?.readingCompletion(task: queue) { [weak self] (newPackets, error) in
             if let error = error {
 
                 return
@@ -1028,7 +1028,7 @@ public class OpenVPNSession: Session {
 
         // WARNING: runs in Network.framework queue
         let writeLink = link
-        link?.writePackets(rawList) { [weak self] (error) in
+        link?.multiplePacketsDataWritten(rawList) { [weak self] (error) in
             self?.queue.sync {
                 guard self?.link === writeLink else {
 
@@ -1132,7 +1132,7 @@ public class OpenVPNSession: Session {
                 return
             }
 
-            tunnel?.writePackets(decryptedPackets, completionHandler: nil)
+            tunnel?.multiplePacketsDataWritten(decryptedPackets, completionHandler: nil)
         } catch {
             if let nativeError = error.asNativeOpenVPNError {
                 deferStop(.shutdown, nativeError)
@@ -1159,7 +1159,7 @@ public class OpenVPNSession: Session {
             // WARNING: runs in Network.framework queue
             controlChannel.addSentDataCount(encryptedPackets.flatCount)
             let writeLink = link
-            link?.writePackets(encryptedPackets) { [weak self] (error) in
+            link?.multiplePacketsDataWritten(encryptedPackets) { [weak self] (error) in
                 self?.queue.sync {
                     guard self?.link === writeLink else {
 
@@ -1205,7 +1205,7 @@ public class OpenVPNSession: Session {
 
         // WARNING: runs in Network.framework queue
         let writeLink = link
-        link?.writePacket(raw) { [weak self] (error) in
+        link?.singleDataWritten(raw) { [weak self] (error) in
             self?.queue.sync {
                 guard self?.link === writeLink else {
 
@@ -1251,7 +1251,7 @@ public class OpenVPNSession: Session {
                     completion()
                     return
                 }
-                link.writePackets(packets) { [weak self] (_) in
+                link.multiplePacketsDataWritten(packets) { [weak self] (_) in
                     self?.queue.sync {
                         completion()
                     }

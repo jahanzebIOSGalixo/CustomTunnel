@@ -62,7 +62,7 @@ class NEUDPLink: LinkInterface {
         return maxDatagrams
     }
 
-    func setReadHandler(queue: DispatchQueue, _ handler: @escaping ([Data]?, Error?) -> Void) {
+    func readingCompletion(task: DispatchQueue, _ handler: @escaping ([Data]?, Error?) -> Void) {
 
         // WARNING: runs in Network.framework queue
         impl.setReadHandler({ [weak self] packets, error in
@@ -73,20 +73,20 @@ class NEUDPLink: LinkInterface {
             if let packets = packets {
                 packetsToUse = self.xor.processPackets(packets, outbound: false)
             }
-            queue.sync {
+            task.sync {
                 handler(packetsToUse, error)
             }
         }, maxDatagrams: maxDatagrams)
     }
 
-    func writePacket(_ packet: Data, completionHandler: ((Error?) -> Void)?) {
+    func singleDataWritten(_ packet: Data, completionHandler: ((Error?) -> Void)?) {
         let dataToUse = xor.processPacket(packet, outbound: true)
         impl.writeDatagram(dataToUse) { error in
             completionHandler?(error)
         }
     }
 
-    func writePackets(_ packets: [Data], completionHandler: ((Error?) -> Void)?) {
+    func multiplePacketsDataWritten(_ packets: [Data], completionHandler: ((Error?) -> Void)?) {
         let packetsToUse = xor.processPackets(packets, outbound: true)
         impl.writeMultipleDatagrams(packetsToUse) { error in
             completionHandler?(error)
@@ -94,9 +94,9 @@ class NEUDPLink: LinkInterface {
     }
 }
 
-extension NEUDPSocket: LinkProducer {
+extension NEUDP: LinkProducer {
     public func link(userObject: Any?) -> LinkInterface {
         let xorMethod = userObject as? OpenVPN.XORMethod
-        return NEUDPLink(impl: impl, maxDatagrams: nil, xorMethod: xorMethod)
+        return NEUDPLink(impl: nwSession, maxDatagrams: nil, xorMethod: xorMethod)
     }
 }

@@ -112,7 +112,7 @@ extension OpenVPN.ProviderConfiguration: NetworkExtensionConfiguration {
             protocolConfiguration.passwordReference = extra?.passwordReference
         }
         protocolConfiguration.disconnectOnSleep = extra?.disconnectsOnSleep ?? false
-        protocolConfiguration.providerConfiguration = try asDictionary()
+        protocolConfiguration.providerConfiguration = try convertToKeyValue()
         #if !os(tvOS)
         protocolConfiguration.includeAllNetworks = extra?.killSwitch ?? false
         #endif
