@@ -168,7 +168,7 @@ class PushTests: XCTestCase {
         reply?.debug()
     }
 
-//    func testPeerInfo() {
-//        _ = OpenVpnMainConfig.OpenVPN.peerInfo()
-//    }
+    func testPeerInfo() {
+        _ = OpenVpnMainConfig.OpenVPN.peerInfo()
+    }
 }

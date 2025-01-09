@@ -136,35 +136,35 @@ class AppExtensionTests: XCTestCase {
         }
     }
 
-//    func testEndpointCycling() {
-//        OpenVpnMainConfig.masksPrivateData = false
-//
-//        var builder = OpenVPN.ConfigurationBuilder()
-//        let hostname = "italy.privateinternetaccess.com"
-//        builder.remotes = [
-//            .init(hostname, .init(.tcp6, 2222)),
-//            .init(hostname, .init(.udp, 1111)),
-//            .init(hostname, .init(.udp4, 3333))
-//        ]
-//        let strategy = AlgoConnection(configuration: builder.build())
-//
-//        let expected = [
-//            "italy.privateinternetaccess.com:TCP6:2222",
-//            "italy.privateinternetaccess.com:UDP:1111",
-//            "italy.privateinternetaccess.com:UDP4:3333"
-//        ]
-//        var i = 0
-//        while strategy.() {
-//            guard let remote = strategy.currentRemote else {
-//                break
-//            }
-//            XCTAssertEqual(remote.originalEndpoint.description, expected[i])
-//            i += 1
-//            guard strategy.tryNextEndpoint() else {
-//                break
-//            }
-//        }
-//    }
+    func testEndpointCycling() {
+        OpenVpnMainConfig.masksPrivateData = false
+
+        var builder = OpenVPN.ConfigurationBuilder()
+        let hostname = "italy.privateinternetaccess.com"
+        builder.remotes = [
+            .init(hostname, .init(.tcp6, 2222)),
+            .init(hostname, .init(.udp, 1111)),
+            .init(hostname, .init(.udp4, 3333))
+        ]
+        let strategy = ConnectionStrategy(configuration: builder.build())
+
+        let expected = [
+            "italy.privateinternetaccess.com:TCP6:2222",
+            "italy.privateinternetaccess.com:UDP:1111",
+            "italy.privateinternetaccess.com:UDP4:3333"
+        ]
+        var i = 0
+        while strategy.hasEndpoints() {
+            guard let remote = strategy.currentRemote else {
+                break
+            }
+            XCTAssertEqual(remote.originalEndpoint.description, expected[i])
+            i += 1
+            guard strategy.tryNextEndpoint() else {
+                break
+            }
+        }
+    }
 
 //    func testEndpointCycling4() {
 //        CoreConfiguration.masksPrivateData = false
