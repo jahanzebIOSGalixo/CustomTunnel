@@ -280,7 +280,7 @@ private extension NEVPNManager {
 }
 
 private extension NEVPNStatus {
-    var wrappedStatus: VpnConnectionState {
+    var wrappedStatus: VPNStatus {
         switch self {
         case .connected:
             return .connected
@@ -298,9 +298,4 @@ private extension NEVPNStatus {
             return .disconnected
         }
     }
-}
-
-/// Errors returned by Core library.
-public enum TunnelKitManagerError: Error {
-    case keychain(_ error: PersistanceError)
 }

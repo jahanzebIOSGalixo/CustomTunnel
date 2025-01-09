@@ -65,9 +65,9 @@ extension Notification {
     }
 
    
-    public var connectionVpnState: VpnConnectionState {
+    public var connectionVpnState: VPNStatus {
         get {
-            guard let vpnStatus = userInfo?["Status"] as? VpnConnectionState else {
+            guard let vpnStatus = userInfo?["Status"] as? VPNStatus else {
                 fatalError("Notification has no vpnStatus")
             }
             return vpnStatus
