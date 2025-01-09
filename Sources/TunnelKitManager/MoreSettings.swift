@@ -10,6 +10,6 @@ public struct MoreSetting {
     public var killSwitch = false
     #endif
     public var userData: [String: Any]?
+    public init() {
+    }
 }
-
-
