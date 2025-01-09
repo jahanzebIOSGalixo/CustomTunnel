@@ -180,19 +180,19 @@ extension OpenVPN {
         public var digest: Digest?
 
         /// Compression framing, disabled by default.
-        public var compressionFraming: CompressionFraming?
+        public var compressionFraming: ResizingBounds?
 
         /// Compression algorithm, disabled by default.
-        public var compressionAlgorithm: CompressionAlgorithm?
+        public var compressionAlgorithm: Resizing?
 
         /// The CA for TLS negotiation (PEM format).
-        public var ca: CryptoContainer?
+        public var ca: Encryptor?
 
         /// The optional client certificate for TLS negotiation (PEM format).
-        public var clientCertificate: CryptoContainer?
+        public var clientCertificate: Encryptor?
 
         /// The private key for the certificate in `clientCertificate` (PEM format).
-        public var clientKey: CryptoContainer?
+        public var clientKey: Encryptor?
 
         /// The optional TLS wrapping.
         public var tlsWrap: TLSWrap?
@@ -394,9 +394,9 @@ extension OpenVPN {
 
             static let digest: Digest = .sha1
 
-            static let compressionFraming: CompressionFraming = .disabled
+            static let compressionFraming: ResizingBounds = .disabled
 
-            static let compressionAlgorithm: CompressionAlgorithm = .disabled
+            static let compressionAlgorithm: Resizing = .disabled
         }
 
         private static let randomHostnamePrefixLength = 6
@@ -411,19 +411,19 @@ extension OpenVPN {
         public let digest: Digest?
 
         /// - Seealso: `ConfigurationBuilder.compressionFraming`
-        public let compressionFraming: CompressionFraming?
+        public let compressionFraming: ResizingBounds?
 
         /// - Seealso: `ConfigurationBuilder.compressionAlgorithm`
-        public let compressionAlgorithm: CompressionAlgorithm?
+        public let compressionAlgorithm: Resizing?
 
         /// - Seealso: `ConfigurationBuilder.ca`
-        public let ca: CryptoContainer?
+        public let ca: Encryptor?
 
         /// - Seealso: `ConfigurationBuilder.clientCertificate`
-        public let clientCertificate: CryptoContainer?
+        public let clientCertificate: Encryptor?
 
         /// - Seealso: `ConfigurationBuilder.clientKey`
-        public let clientKey: CryptoContainer?
+        public let clientKey: Encryptor?
 
         /// - Seealso: `ConfigurationBuilder.tlsWrap`
         public let tlsWrap: TLSWrap?
@@ -540,11 +540,11 @@ extension OpenVPN {
             return digest ?? Fallback.digest
         }
 
-        public var fallbackCompressionFraming: CompressionFraming {
+        public var fallbackCompressionFraming: ResizingBounds {
             return compressionFraming ?? Fallback.compressionFraming
         }
 
-        public var fallbackCompressionAlgorithm: CompressionAlgorithm {
+        public var fallbackCompressionAlgorithm: Resizing {
             return compressionAlgorithm ?? Fallback.compressionAlgorithm
         }
 

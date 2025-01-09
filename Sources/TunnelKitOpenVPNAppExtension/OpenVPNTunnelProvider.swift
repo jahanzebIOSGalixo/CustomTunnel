@@ -434,14 +434,14 @@ extension OpenVPNTunnelProvider: GalixoSocketProtocol {
         if failure && (shutdownError == nil) {
             shutdownError = TunnelKitOpenVPNError.linkError
         }
-        if case .negotiationTimeout = shutdownError as? OpenVPNError {
+        if case .negotiationTimeout = shutdownError as? VpnErrors {
             didTimeoutNegotiation = true
         } else {
             didTimeoutNegotiation = false
         }
 
         // only try upgrade on network errors
-        if shutdownError as? OpenVPNError == nil {
+        if shutdownError as? VpnErrors == nil {
             upgradedSocket = socket.upgraded()
         }
 
@@ -679,7 +679,7 @@ private extension OpenVPNTunnelProvider {
     }
 
     func openVPNError(from error: Error) -> TunnelKitOpenVPNError? {
-        if let specificError = error.asNativeOpenVPNError ?? error as? OpenVPNError {
+        if let specificError = error.asNativeOpenVPNError ?? error as? VpnErrors {
             switch specificError {
             case .negotiationTimeout, .pingTimeout, .staleSession:
                 return .timeout

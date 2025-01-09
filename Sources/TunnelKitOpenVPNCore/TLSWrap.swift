@@ -44,9 +44,9 @@ extension OpenVPN {
         public let strategy: Strategy
 
         /// The static encryption key.
-        public let key: StaticKey
+        public let key: FixedCreds
 
-        public init(strategy: Strategy, key: StaticKey) {
+        public init(strategy: Strategy, key: FixedCreds) {
             self.strategy = strategy
             self.key = key
         }

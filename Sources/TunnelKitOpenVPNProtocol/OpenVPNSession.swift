@@ -189,7 +189,7 @@ public class OpenVPNSession: Session {
      */
     public init(queue: DispatchQueue, configuration: OpenVPN.Configuration, cachesURL: URL) throws {
         guard let ca = configuration.ca else {
-            throw OpenVPN.ConfigurationError.missingConfiguration(option: "ca")
+            throw OpenVPN.SettingsError.missingConfiguration(option: "ca")
         }
 
         self.queue = queue
@@ -355,11 +355,11 @@ public class OpenVPNSession: Session {
         }
 
         guard !negotiationKey.didHardResetTimeOut(link: link) else {
-            doReconnect(error: OpenVPNError.negotiationTimeout)
+            doReconnect(error: VpnErrors.negotiationTimeout)
             return
         }
         guard !negotiationKey.didNegotiationTimeOut(link: link) else {
-            doShutdown(error: OpenVPNError.negotiationTimeout)
+            doShutdown(error: VpnErrors.negotiationTimeout)
             return
         }
 
@@ -486,7 +486,7 @@ public class OpenVPNSession: Session {
 
                 // HARD_RESET coming during a SOFT_RESET handshake (before connecting)
                 guard !isRenegotiating else {
-                    deferStop(.shutdown, OpenVPNError.staleSession)
+                    deferStop(.shutdown, VpnErrors.staleSession)
                     return
                 }
 
@@ -534,7 +534,7 @@ public class OpenVPNSession: Session {
 
         let now = Date()
         guard now.timeIntervalSince(lastPing.inbound) <= keepAliveTimeout else {
-            deferStop(.shutdown, OpenVPNError.pingTimeout)
+            deferStop(.shutdown, VpnErrors.pingTimeout)
             return
         }
 
@@ -757,12 +757,12 @@ public class OpenVPNSession: Session {
             }
             guard let remoteSessionId = controlChannel.remoteSessionId else {
 
-                deferStop(.shutdown, OpenVPNError.missingSessionId)
+                deferStop(.shutdown, VpnErrors.missingSessionId)
                 return
             }
             guard packet.sessionId == remoteSessionId else {
 
-                deferStop(.shutdown, OpenVPNError.sessionMismatch)
+                deferStop(.shutdown, VpnErrors.sessionMismatch)
                 return
             }
 
@@ -807,12 +807,12 @@ public class OpenVPNSession: Session {
         else if (packet.code == .controlV1) && (negotiationKey.state == .tls) {
             guard let remoteSessionId = controlChannel.remoteSessionId else {
 
-                deferStop(.shutdown, OpenVPNError.missingSessionId)
+                deferStop(.shutdown, VpnErrors.missingSessionId)
                 return
             }
             guard packet.sessionId == remoteSessionId else {
 
-                deferStop(.shutdown, OpenVPNError.sessionMismatch)
+                deferStop(.shutdown, VpnErrors.sessionMismatch)
                 return
             }
 
@@ -904,18 +904,18 @@ public class OpenVPNSession: Session {
             if authenticator?.withLocalOptions ?? false {
 
                 withLocalOptions = false
-                deferStop(.reconnect, OpenVPNError.badCredentials)
+                deferStop(.reconnect, VpnErrors.badCredentials)
                 return
             }
 
-            deferStop(.shutdown, OpenVPNError.badCredentials)
+            deferStop(.shutdown, VpnErrors.badCredentials)
             return
         }
 
         // disconnect on remote server restart (--explicit-exit-notify)
         guard !message.hasPrefix("RESTART") else {
 
-            deferStop(.shutdown, OpenVPNError.serverShutdown)
+            deferStop(.shutdown, VpnErrors.serverShutdown)
             return
         }
 
@@ -946,15 +946,15 @@ public class OpenVPNSession: Session {
                 case .LZO:
                     if !LZOFactory.isSupported() {
 
-                        throw OpenVPNError.serverCompression
+                        throw VpnErrors.serverCompression
                     }
 
                 case .other:
 
-                    throw OpenVPNError.serverCompression
+                    throw VpnErrors.serverCompression
                 }
             }
-        } catch OpenVPN.ConfigurationError.continuationPushReply {
+        } catch OpenVPN.SettingsError.continuationPushReply {
             continuatedPushReplyMessage = completeMessage.replacingOccurrences(of: "push-continuation", with: "")
             // FIXME: strip "PUSH_REPLY" and "push-continuation 2"
             return
@@ -965,7 +965,7 @@ public class OpenVPNSession: Session {
 
         pushReply = reply
         guard reply.options.ipv4 != nil || reply.options.ipv6 != nil else {
-            deferStop(.shutdown, OpenVPNError.noRouting)
+            deferStop(.shutdown, VpnErrors.noRouting)
             return
         }
 
@@ -1036,7 +1036,7 @@ public class OpenVPNSession: Session {
                 }
                 if let error = error {
 
-                    self?.deferStop(.shutdown, OpenVPNError.failedLinkWrite)
+                    self?.deferStop(.shutdown, VpnErrors.failedLinkWrite)
                     return
                 }
             }
@@ -1167,7 +1167,7 @@ public class OpenVPNSession: Session {
                     }
                     if let error = error {
 
-                        self?.deferStop(.shutdown, OpenVPNError.failedLinkWrite)
+                        self?.deferStop(.shutdown, VpnErrors.failedLinkWrite)
                         return
                     }
 //                    log.verbose("Data: \(encryptedPackets.count) packets successfully written to LINK")
@@ -1213,7 +1213,7 @@ public class OpenVPNSession: Session {
                 }
                 if let error = error {
 
-                    self?.deferStop(.shutdown, OpenVPNError.failedLinkWrite)
+                    self?.deferStop(.shutdown, VpnErrors.failedLinkWrite)
                     return
                 }
 

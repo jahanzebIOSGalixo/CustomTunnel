@@ -189,7 +189,7 @@ extension OpenVPN {
 
             let prefix = controlBuffer.withOffset(0, count: prefixLength)
             guard prefix.isEqual(to: ProtocolMacros.tlsPrefix) else {
-                throw OpenVPNError.wrongControlDataPrefix
+                throw VpnErrors.wrongControlDataPrefix
             }
 
             var offset = ProtocolMacros.tlsPrefix.count
