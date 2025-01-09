@@ -26,20 +26,25 @@
 import Foundation
 
 /// VPN notifications.
-public struct VpnConnectionObserver {
-    public static let connectionDidFail = Notification.Name("connectionDidFail")
-    public static let profileReinstalled = Notification.Name("profileReinstalled")
-    public static let vpnStateChanged = Notification.Name("vpnStateChanged")
-    
+public struct VPNNotification {
+
+    /// The VPN did reinstall.
+    public static let didReinstall = Notification.Name("VPNDidReinstall")
+
+    /// The VPN did change its status.
+    public static let didChangeStatus = Notification.Name("VPNDidChangeStatus")
+
+    /// The VPN triggered some error.
+    public static let didFail = Notification.Name("VPNDidFail")
 }
 
 extension Notification {
 
-    
+    /// The VPN bundle identifier.
     public var vpnBundleIdentifier: String? {
         get {
             guard let vpnBundleIdentifier = userInfo?["BundleIdentifier"] as? String else {
-                fatalError("invalid indetiftfier")
+                fatalError("Notification has no vpnBundleIdentifier")
             }
             return vpnBundleIdentifier
         }
@@ -50,10 +55,11 @@ extension Notification {
         }
     }
 
-    public var isConnected: Bool {
+    /// The current VPN enabled state.
+    public var vpnIsEnabled: Bool {
         get {
             guard let vpnIsEnabled = userInfo?["IsEnabled"] as? Bool else {
-                fatalError("isConnected Not Found")
+                fatalError("Notification has no vpnIsEnabled")
             }
             return vpnIsEnabled
         }
@@ -64,8 +70,8 @@ extension Notification {
         }
     }
 
-   
-    public var connectionVpnState: VPNStatus {
+    /// The current VPN status.
+    public var vpnStatus: VPNStatus {
         get {
             guard let vpnStatus = userInfo?["Status"] as? VPNStatus else {
                 fatalError("Notification has no vpnStatus")
@@ -79,7 +85,7 @@ extension Notification {
         }
     }
 
-    
+    /// The triggered VPN error.
     public var vpnError: Error {
         get {
             guard let vpnError = userInfo?["Error"] as? Error else {
@@ -94,18 +100,18 @@ extension Notification {
         }
     }
 
-//    /// The current VPN connection date.
-//    public var connectionDate: Date? {
-//        get {
-//            guard let date = userInfo?["ConnectionDate"] as? Date else {
-//                fatalError("Notification has no connectionDate")
-//            }
-//            return date
-//        }
-//        set {
-//            var newInfo = userInfo ?? [:]
-//            newInfo["ConnectionDate"] = newValue
-//            userInfo = newInfo
-//        }
-//    }
+    /// The current VPN connection date.
+    public var connectionDate: Date? {
+        get {
+            guard let date = userInfo?["ConnectionDate"] as? Date else {
+                fatalError("Notification has no connectionDate")
+            }
+            return date
+        }
+        set {
+            var newInfo = userInfo ?? [:]
+            newInfo["ConnectionDate"] = newValue
+            userInfo = newInfo
+        }
+    }
 }

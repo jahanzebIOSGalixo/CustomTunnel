@@ -89,16 +89,20 @@ extension DispatchTimeInterval {
     /// Returns self in nanoseconds.
     public var nanoseconds: UInt64 {
         switch self {
-        case .never:
-            return 0
-        case .nanoseconds(let nsec):
-            return UInt64(nsec)
         case .seconds(let sec):
             return UInt64(sec) * NSEC_PER_SEC
-        case .microseconds(let usec):
-            return UInt64(usec) * NSEC_PER_USEC
+
         case .milliseconds(let msec):
             return UInt64(msec) * NSEC_PER_MSEC
+
+        case .microseconds(let usec):
+            return UInt64(usec) * NSEC_PER_USEC
+
+        case .nanoseconds(let nsec):
+            return UInt64(nsec)
+
+        case .never:
+            return 0
 
         @unknown default:
             return 0
