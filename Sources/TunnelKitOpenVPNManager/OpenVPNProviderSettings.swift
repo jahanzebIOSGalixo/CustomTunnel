@@ -35,43 +35,22 @@ import __TunnelKitUtils
 
 extension OpenVPN {
 
-    /// Specific configuration for OpenVPN.
-    public struct ProviderConfiguration: Codable {
+    public struct Settings: Codable {
         fileprivate enum Keys: String {
             case logPath = "OpenVPN.LogPath"
-
             case dataCount = "OpenVPN.DataCount"
-
             case serverConfiguration = "OpenVPN.ServerConfiguration"
-
             case lastError = "OpenVPN.LastError"
         }
 
-        /// Optional version identifier about the client pushed to server in peer-info as `IV_UI_VER`.
         public var versionIdentifier: String?
-
-        /// The configuration title.
         public let title: String
-
-        /// The access group for shared data.
         public let appGroup: String
-
-        /// The client configuration.
         public let configuration: OpenVPN.Configuration
-
-        /// The optional username.
         public var username: String?
-
-        /// Enables debugging.
         public var shouldDebug = false
-
-        /// Debug log path.
         public var debugLogPath: String?
-
-        /// Optional debug log format (SwiftyBeaver format).
         public var debugLogFormat: String?
-
-        /// Mask private data in debug log (default is `true`).
         public var masksPrivateData = true
 
         public init(_ title: String, appGroup: String, configuration: OpenVPN.Configuration) {
@@ -81,20 +60,15 @@ extension OpenVPN {
         }
 
         public func print() {
-            if let versionIdentifier = versionIdentifier {
-
-            }
-
-
-
             configuration.print(isLocal: true)
         }
     }
+
 }
 
 // MARK: NetworkExtensionConfiguration
 
-extension OpenVPN.ProviderConfiguration: MoreConfigDelegate {
+extension OpenVPN.Settings: MoreConfigDelegate {
 
     public func asTunnelProtocol(
         withBundleIdentifier tunnelBundleIdentifier: String,
@@ -122,7 +96,7 @@ extension OpenVPN.ProviderConfiguration: MoreConfigDelegate {
 
 // MARK: Shared data
 
-extension OpenVPN.ProviderConfiguration {
+extension OpenVPN.Settings {
 
     /**
      The most recent (received, sent) count in bytes.
@@ -141,7 +115,7 @@ extension OpenVPN.ProviderConfiguration {
     /**
      The last error reported by the tunnel, if any.
      */
-    public var lastError: TunnelKitOpenVPNError? {
+    public var lastError: GalixoTunnelErrors? {
         return defaults?.openVPNLastError
     }
 
@@ -157,7 +131,7 @@ extension OpenVPN.ProviderConfiguration {
     }
 }
 
-extension OpenVPN.ProviderConfiguration {
+extension OpenVPN.Settings {
     public func _appexSetDataCount(_ newValue: DataCount?) {
         defaults?.openVPNDataCount = newValue
     }
@@ -166,7 +140,7 @@ extension OpenVPN.ProviderConfiguration {
         defaults?.openVPNServerConfiguration = newValue
     }
 
-    public func _appexSetLastError(_ newValue: TunnelKitOpenVPNError?) {
+    public func _appexSetLastError(_ newValue: GalixoTunnelErrors?) {
         defaults?.openVPNLastError = newValue
     }
 
@@ -179,13 +153,13 @@ extension OpenVPN.ProviderConfiguration {
     }
 
     public func _appexSetDebugLogPath() {
-        defaults?.setValue(debugLogPath, forKey: OpenVPN.ProviderConfiguration.Keys.logPath.rawValue)
+        defaults?.setValue(debugLogPath, forKey: OpenVPN.Settings.Keys.logPath.rawValue)
     }
 }
 
 extension UserDefaults {
     public func openVPNURLForDebugLog(appGroup: String) -> URL? {
-        guard let path = string(forKey: OpenVPN.ProviderConfiguration.Keys.logPath.rawValue) else {
+        guard let path = string(forKey: OpenVPN.Settings.Keys.logPath.rawValue) else {
             return nil
         }
         return FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup)?
@@ -213,20 +187,20 @@ extension UserDefaults {
 
     @objc private var openVPNDataCountArray: [UInt]? {
         get {
-            return array(forKey: OpenVPN.ProviderConfiguration.Keys.dataCount.rawValue) as? [UInt]
+            return array(forKey: OpenVPN.Settings.Keys.dataCount.rawValue) as? [UInt]
         }
         set {
-            set(newValue, forKey: OpenVPN.ProviderConfiguration.Keys.dataCount.rawValue)
+            set(newValue, forKey: OpenVPN.Settings.Keys.dataCount.rawValue)
         }
     }
 
     private func openVPNRemoveDataCountArray() {
-        removeObject(forKey: OpenVPN.ProviderConfiguration.Keys.dataCount.rawValue)
+        removeObject(forKey: OpenVPN.Settings.Keys.dataCount.rawValue)
     }
 
     public fileprivate(set) var openVPNServerConfiguration: OpenVPN.Configuration? {
         get {
-            guard let raw = data(forKey: OpenVPN.ProviderConfiguration.Keys.serverConfiguration.rawValue) else {
+            guard let raw = data(forKey: OpenVPN.Settings.Keys.serverConfiguration.rawValue) else {
                 return nil
             }
             let decoder = JSONDecoder()
@@ -245,26 +219,26 @@ extension UserDefaults {
             let encoder = JSONEncoder()
             do {
                 let raw = try encoder.encode(newValue)
-                set(raw, forKey: OpenVPN.ProviderConfiguration.Keys.serverConfiguration.rawValue)
+                set(raw, forKey: OpenVPN.Settings.Keys.serverConfiguration.rawValue)
             } catch {
 
             }
         }
     }
 
-    public fileprivate(set) var openVPNLastError: TunnelKitOpenVPNError? {
+    public fileprivate(set) var openVPNLastError: GalixoTunnelErrors? {
         get {
-            guard let rawValue = string(forKey: OpenVPN.ProviderConfiguration.Keys.lastError.rawValue) else {
+            guard let rawValue = string(forKey: OpenVPN.Settings.Keys.lastError.rawValue) else {
                 return nil
             }
-            return TunnelKitOpenVPNError(rawValue: rawValue)
+            return GalixoTunnelErrors(rawValue: rawValue)
         }
         set {
             guard let newValue = newValue else {
-                removeObject(forKey: OpenVPN.ProviderConfiguration.Keys.lastError.rawValue)
+                removeObject(forKey: OpenVPN.Settings.Keys.lastError.rawValue)
                 return
             }
-            set(newValue.rawValue, forKey: OpenVPN.ProviderConfiguration.Keys.lastError.rawValue)
+            set(newValue.rawValue, forKey: OpenVPN.Settings.Keys.lastError.rawValue)
         }
     }
 }

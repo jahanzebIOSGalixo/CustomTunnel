@@ -93,7 +93,7 @@ class ConnectionStrategy {
         from provider: NEProvider,
         timeout: Int,
         queue: DispatchQueue,
-        completionHandler: @escaping (Result<GalixoSocket, TunnelKitOpenVPNError>) -> Void) {
+        completionHandler: @escaping (Result<GalixoSocket, GalixoTunnelErrors>) -> Void) {
         guard let remote = currentRemote else {
             completionHandler(.failure(.exhaustedEndpoints))
             return

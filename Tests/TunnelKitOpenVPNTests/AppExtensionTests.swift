@@ -71,7 +71,7 @@ class AppExtensionTests: XCTestCase {
         builder.remotes = [.init(hostname, .init(.udp, port))]
         builder.mtu = 1230
 
-        var cfg = OpenVPN.ProviderConfiguration("", appGroup: appGroup, configuration: builder.build())
+        var cfg = OpenVPN.Settings("", appGroup: appGroup, configuration: builder.build())
         cfg.username = credentials.username
         let proto: NETunnelProviderProtocol
         do {

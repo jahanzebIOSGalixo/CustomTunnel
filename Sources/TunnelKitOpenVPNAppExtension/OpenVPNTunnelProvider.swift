@@ -114,7 +114,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: Tunnel configuration
 
-    private var cfg: OpenVPN.ProviderConfiguration!
+    private var cfg: OpenVPN.Settings!
 
     private var strategy: ConnectionStrategy!
 
@@ -153,7 +153,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
             guard let providerConfiguration = tunnelProtocol.providerConfiguration else {
                 throw ConfigurationError.parameter(name: "protocolConfiguration.providerConfiguration")
             }
-            cfg = try fromKeyValue(OpenVPN.ProviderConfiguration.self, providerConfiguration)
+            cfg = try fromKeyValue(OpenVPN.Settings.self, providerConfiguration)
         } catch let cfgError as ConfigurationError {
             switch cfgError {
             case .parameter(let name):
@@ -357,7 +357,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
             // from stopTunnel(), in which case we don't need to feed an error parameter to
             // the stop completion handler
             //
-            pendingStartHandler?(error ?? TunnelKitOpenVPNError.socketActivity)
+            pendingStartHandler?(error ?? GalixoTunnelErrors.socketActivity)
             pendingStartHandler = nil
         }
         // stopped intentionally
@@ -432,7 +432,7 @@ extension OpenVPNTunnelProvider: GalixoSocketProtocol {
         // look for error causing shutdown
         shutdownError = session.stopError
         if failure && (shutdownError == nil) {
-            shutdownError = TunnelKitOpenVPNError.linkError
+            shutdownError = GalixoTunnelErrors.linkError
         }
         if case .negotiationTimeout = shutdownError as? VpnErrors {
             didTimeoutNegotiation = true
@@ -480,7 +480,7 @@ extension OpenVPNTunnelProvider: GalixoSocketProtocol {
     public func socketHasBetterPath(_ socket: GalixoSocket) {
 
         logCurrentSSID()
-        session?.reconnect(error: TunnelKitOpenVPNError.networkChanged)
+        session?.reconnect(error: GalixoTunnelErrors.networkChanged)
     }
 }
 
@@ -545,7 +545,7 @@ extension OpenVPNTunnelProvider: OpenVPNSessionDelegate {
         let newSettings = NetworkSettingsBuilder(remoteAddress: remoteAddress, localOptions: localOptions, remoteOptions: remoteOptions)
 
         guard !newSettings.isGateway || newSettings.hasGateway else {
-            session?.shutdown(error: TunnelKitOpenVPNError.gatewayUnattainable)
+            session?.shutdown(error: GalixoTunnelErrors.gatewayUnattainable)
             return
         }
 
@@ -593,7 +593,7 @@ extension OpenVPNTunnelProvider: OpenVPNSessionDelegate {
 extension OpenVPNTunnelProvider {
     private func tryNextEndpoint() -> Bool {
         guard strategy.tryNextEndpoint() else {
-            disposeTunnel(error: TunnelKitOpenVPNError.exhaustedEndpoints)
+            disposeTunnel(error: GalixoTunnelErrors.exhaustedEndpoints)
             return false
         }
         return true
@@ -670,7 +670,7 @@ private extension OpenVPNTunnelProvider {
         cfg._appexSetLastError(unifiedError(from: error))
     }
 
-    func unifiedError(from error: Error) -> TunnelKitOpenVPNError {
+    func unifiedError(from error: Error) -> GalixoTunnelErrors {
 
         // XXX: error handling is limited by lastError serialization
         // requirement, cannot return a generic Error here
@@ -678,7 +678,7 @@ private extension OpenVPNTunnelProvider {
         openVPNError(from: error) ?? .linkError
     }
 
-    func openVPNError(from error: Error) -> TunnelKitOpenVPNError? {
+    func openVPNError(from error: Error) -> GalixoTunnelErrors? {
         if let specificError = error.asNativeOpenVPNError ?? error as? VpnErrors {
             switch specificError {
             case .negotiationTimeout, .pingTimeout, .staleSession:
