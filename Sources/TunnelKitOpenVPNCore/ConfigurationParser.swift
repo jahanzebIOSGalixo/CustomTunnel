@@ -183,7 +183,7 @@ extension OpenVPN {
             public let strippedLines: [String]?
 
             /// Holds an optional `ConfigurationError` that didn't block the parser, but it would be worth taking care of.
-            public let warning: ConfigurationError?
+            public let warning: SetupError?
         }
 
         /**
@@ -221,7 +221,7 @@ extension OpenVPN {
             originalURL: URL? = nil,
             returnsStripped: Bool = false
         ) throws -> Result {
-            let lines = contents.trimmedLines()
+            let lines = contents.separatedStrings()
             return try parsed(
                 fromLines: lines,
                 isClient: true,
@@ -250,8 +250,8 @@ extension OpenVPN {
             returnsStripped: Bool = false
         ) throws -> Result {
             var optStrippedLines: [String]? = returnsStripped ? [] : nil
-            var optWarning: ConfigurationError?
-            var unsupportedError: ConfigurationError?
+            var optWarning: SetupError?
+            var unsupportedError: SetupError?
             var currentBlockName: String?
             var currentBlock: [String] = []
 
@@ -261,9 +261,9 @@ extension OpenVPN {
             var optDigest: Digest?
             var optCompressionFraming: CompressionFraming?
             var optCompressionAlgorithm: CompressionAlgorithm?
-            var optCA: CryptoContainer?
-            var optClientCertificate: CryptoContainer?
-            var optClientKey: CryptoContainer?
+            var optCA: Encryption?
+            var optClientCertificate: Encryption?
+            var optClientKey: Encryption?
             var optKeyDirection: StaticKey.Direction?
             var optTLSKeyLines: [Substring]?
             var optTLSStrategy: TLSWrap.Strategy?
@@ -316,16 +316,16 @@ extension OpenVPN {
 
                 // check blocks first
                 Regex.connection.galixoComponents(in: line) { (_) in
-                    unsupportedError = ConfigurationError.unsupportedConfiguration(option: "<connection> blocks")
+                    unsupportedError = SetupError.unsupportedConfiguration(option: "<connection> blocks")
                 }
                 Regex.fragment.galixoComponents(in: line) { (_) in
-                    unsupportedError = ConfigurationError.unsupportedConfiguration(option: "fragment")
+                    unsupportedError = SetupError.unsupportedConfiguration(option: "fragment")
                 }
                 Regex.connectionProxy.galixoComponents(in: line) { (_) in
-                    unsupportedError = ConfigurationError.unsupportedConfiguration(option: "proxy: \"\(line)\"")
+                    unsupportedError = SetupError.unsupportedConfiguration(option: "proxy: \"\(line)\"")
                 }
                 Regex.externalFiles.galixoComponents(in: line) { (_) in
-                    unsupportedError = ConfigurationError.unsupportedConfiguration(option: "external file: \"\(line)\"")
+                    unsupportedError = SetupError.unsupportedConfiguration(option: "external file: \"\(line)\"")
                 }
                 if line.contains("mtu") || line.contains("mssfix") {
                     isHandled = true
@@ -338,7 +338,7 @@ extension OpenVPN {
                     isContinuation = ($0.first == "2")
                 }
                 guard !isContinuation else {
-                    throw ConfigurationError.continuationPushReply
+                    throw SetupError.continuationPushReply
                 }
 
                 // MARK: Inline content
@@ -370,14 +370,14 @@ extension OpenVPN {
                         currentBlock.removeFirst()
                         switch blockName {
                         case "ca":
-                            optCA = CryptoContainer(pem: currentBlock.joined(separator: "\n"))
+                            optCA = Encryption(pem: currentBlock.joined(separator: "\n"))
 
                         case "cert":
-                            optClientCertificate = CryptoContainer(pem: currentBlock.joined(separator: "\n"))
+                            optClientCertificate = Encryption(pem: currentBlock.joined(separator: "\n"))
 
                         case "key":
                             ConfigurationParser.normalizeEncryptedPEMBlock(block: &currentBlock)
-                            optClientKey = CryptoContainer(pem: currentBlock.joined(separator: "\n"))
+                            optClientKey = Encryption(pem: currentBlock.joined(separator: "\n"))
 
                         case "tls-auth":
                             optTLSKeyLines = currentBlock.map(Substring.init(_:))
@@ -436,7 +436,7 @@ extension OpenVPN {
                     }
                     optDigest = Digest(rawValue: rawValue.uppercased())
                     if optDigest == nil {
-                        unsupportedError = ConfigurationError.unsupportedConfiguration(option: "auth \(rawValue)")
+                        unsupportedError = SetupError.unsupportedConfiguration(option: "auth \(rawValue)")
                     }
                 }
                 Regex.compLZO.galixoArguments(in: line) {
@@ -533,7 +533,7 @@ extension OpenVPN {
                     }
                     optDefaultProto = TotalServerCount(protoString: str)
                     if optDefaultProto == nil {
-                        unsupportedError = ConfigurationError.unsupportedConfiguration(option: "proto \(str)")
+                        unsupportedError = SetupError.unsupportedConfiguration(option: "proto \(str)")
                     }
                 }
                 Regex.port.galixoArguments(in: line) {
@@ -673,7 +673,7 @@ extension OpenVPN {
                 Regex.proxy.galixoArguments(in: line) {
                     if $0.count == 2 {
                         guard let url = URL(string: $0[1]) else {
-                            unsupportedError = ConfigurationError.malformed(option: "dhcp-option PROXY_AUTO_CONFIG_URL has malformed URL")
+                            unsupportedError = SetupError.malformed(option: "dhcp-option PROXY_AUTO_CONFIG_URL has malformed URL")
                             return
                         }
                         optProxyAutoConfigurationURL = url
@@ -756,10 +756,10 @@ extension OpenVPN {
 
             if isClient {
                 guard let _ = optCA else {
-                    throw ConfigurationError.missingConfiguration(option: "ca")
+                    throw SetupError.missingConfiguration(option: "ca")
                 }
                 guard optCipher != nil || !(optDataCiphers?.isEmpty ?? false) else {
-                    throw ConfigurationError.missingConfiguration(option: "cipher or data-ciphers")
+                    throw SetupError.missingConfiguration(option: "cipher or data-ciphers")
                 }
             }
 
@@ -800,12 +800,12 @@ extension OpenVPN {
             if let clientKey = optClientKey, clientKey.isEncrypted {
                 // FIXME: remove dependency on TLSBox
                 guard let passphrase = passphrase, !passphrase.isEmpty else {
-                    throw ConfigurationError.encryptionPassphrase
+                    throw SetupError.encryptionPassphrase
                 }
                 do {
                     sessionBuilder.clientKey = try clientKey.decrypted(with: passphrase)
                 } catch {
-                    throw ConfigurationError.unableToDecrypt(error: error)
+                    throw SetupError.unableToDecrypt(error: error)
                 }
             } else {
                 sessionBuilder.clientKey = optClientKey
@@ -878,7 +878,7 @@ extension OpenVPN {
             //
             if let ifconfig4Arguments = optIfconfig4Arguments {
                 guard ifconfig4Arguments.count == 2 else {
-                    throw ConfigurationError.malformed(option: "ifconfig takes 2 arguments")
+                    throw SetupError.malformed(option: "ifconfig takes 2 arguments")
                 }
 
                 let address4: String
@@ -891,7 +891,7 @@ extension OpenVPN {
 
                     // default gateway required when topology is subnet
                     guard let gateway4Arguments = optGateway4Arguments, gateway4Arguments.count == 1 else {
-                        throw ConfigurationError.malformed(option: "route-gateway takes 1 argument")
+                        throw SetupError.malformed(option: "route-gateway takes 1 argument")
                     }
                     address4 = ifconfig4Arguments[0]
                     addressMask4 = ifconfig4Arguments[1]
@@ -915,14 +915,14 @@ extension OpenVPN {
 
             if let ifconfig6Arguments = optIfconfig6Arguments {
                 guard ifconfig6Arguments.count == 2 else {
-                    throw ConfigurationError.malformed(option: "ifconfig-ipv6 takes 2 arguments")
+                    throw SetupError.malformed(option: "ifconfig-ipv6 takes 2 arguments")
                 }
                 let address6Components = ifconfig6Arguments[0].components(separatedBy: "/")
                 guard address6Components.count == 2 else {
-                    throw ConfigurationError.malformed(option: "ifconfig-ipv6 address must have a /prefix")
+                    throw SetupError.malformed(option: "ifconfig-ipv6 address must have a /prefix")
                 }
                 guard let addressPrefix6 = UInt8(address6Components[1]) else {
-                    throw ConfigurationError.malformed(option: "ifconfig-ipv6 address prefix must be a 8-bit number")
+                    throw SetupError.malformed(option: "ifconfig-ipv6 address prefix must be a 8-bit number")
                 }
 
                 let address6 = address6Components[0]
@@ -988,22 +988,16 @@ extension OpenVPN {
         }
 
         private static func normalizeEncryptedPEMBlock(block: inout [String]) {
-    //        if block.count >= 1 && block[0].contains("ENCRYPTED") {
-    //            return true
-    //        }
-
-            // XXX: restore blank line after encryption header (easier than tweaking trimmedLines)
             if block.count >= 3 && block[1].contains("Proc-Type") {
                 block.insert("", at: 3)
-    //            return true
+    
             }
-    //        return false
         }
     }
 }
 
 private extension String {
-    func trimmedLines() -> [String] {
+    func separatedStrings() -> [String] {
         return components(separatedBy: .newlines).map {
             $0.trimmingCharacters(in: .whitespacesAndNewlines)
                 .replacingOccurrences(of: "\\s", with: " ", options: .regularExpression)

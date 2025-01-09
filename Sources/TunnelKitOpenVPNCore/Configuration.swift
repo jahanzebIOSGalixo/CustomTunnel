@@ -1,38 +1,4 @@
-//
-//  Configuration.swift
-//  TunnelKit
-//
-//  Created by Davide De Rosa on 8/23/18.
-//  Copyright (c) 2024 Davide De Rosa. All rights reserved.
-//
-//  https://github.com/passepartoutvpn
-//
-//  This file is part of TunnelKit.
-//
-//  TunnelKit is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-//
-//  TunnelKit is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-//
-//  You should have received a copy of the GNU General Public License
-//  along with TunnelKit.  If not, see <http://www.gnu.org/licenses/>.
-//
-//  This file incorporates work covered by the following copyright and
-//  permission notice:
-//
-//      Copyright (c) 2018-Present Private Internet Access
-//
-//      Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-//
-//      The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-//
-//      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
+
 
 import Foundation
 
@@ -41,14 +7,10 @@ import TunnelKitCore
 
 
 extension OpenVPN {
-
-    /// A pair of credentials for authentication.
+    
     public struct Credentials: Codable, Equatable {
 
-        /// The username.
         public let username: String
-
-        /// The password.
         public let password: String
 
         public init(_ username: String, _ password: String) {
@@ -61,75 +23,49 @@ extension OpenVPN {
     public enum Cipher: String, Codable, CustomStringConvertible {
 
         // WARNING: must match OpenSSL algorithm names
-
-        /// AES encryption with 128-bit key size and CBC.
-        case aes128cbc = "AES-128-CBC"
-
-        /// AES encryption with 192-bit key size and CBC.
-        case aes192cbc = "AES-192-CBC"
-
-        /// AES encryption with 256-bit key size and CBC.
-        case aes256cbc = "AES-256-CBC"
-
-        /// AES encryption with 128-bit key size and GCM.
         case aes128gcm = "AES-128-GCM"
-
-        /// AES encryption with 192-bit key size and GCM.
+        case aes192cbc = "AES-192-CBC"
         case aes192gcm = "AES-192-GCM"
-
-        /// AES encryption with 256-bit key size and GCM.
+        case aes256cbc = "AES-256-CBC"
+        case aes128cbc = "AES-128-CBC"
         case aes256gcm = "AES-256-GCM"
-
-        /// Returns the key size for this cipher.
+        
         public var keySize: Int {
             switch self {
-            case .aes128cbc, .aes128gcm:
-                return 128
-
+        
             case .aes192cbc, .aes192gcm:
                 return 192
-
+            case .aes128cbc, .aes128gcm:
+                return 128
+                
             case .aes256cbc, .aes256gcm:
                 return 256
             }
         }
 
-        /// Digest should be ignored when this is `true`.
+        public var description: String {
+            return rawValue
+        }
+        
         public var embedsDigest: Bool {
             return rawValue.hasSuffix("-GCM")
         }
 
-        /// Returns a generic name for this cipher.
         public var genericName: String {
             return rawValue.hasSuffix("-GCM") ? "AES-GCM" : "AES-CBC"
         }
 
-        public var description: String {
-            return rawValue
-        }
+        
     }
-
-    /// Message digest algorithm.
     public enum Digest: String, Codable, CustomStringConvertible {
 
-        // WARNING: must match OpenSSL algorithm names
-
-        /// SHA1 message digest.
-        case sha1 = "SHA1"
-
-        /// SHA224 message digest.
+        
         case sha224 = "SHA224"
-
-        /// SHA256 message digest.
         case sha256 = "SHA256"
-
-        /// SHA256 message digest.
-        case sha384 = "SHA384"
-
-        /// SHA256 message digest.
+        case sha1 = "SHA1"
         case sha512 = "SHA512"
-
-        /// Returns a generic name for this digest.
+        case sha384 = "SHA384"
+        
         public var genericName: String {
             return "HMAC"
         }
@@ -186,13 +122,13 @@ extension OpenVPN {
         public var compressionAlgorithm: CompressionAlgorithm?
 
         /// The CA for TLS negotiation (PEM format).
-        public var ca: CryptoContainer?
+        public var ca: Encryption?
 
         /// The optional client certificate for TLS negotiation (PEM format).
-        public var clientCertificate: CryptoContainer?
+        public var clientCertificate: Encryption?
 
         /// The private key for the certificate in `clientCertificate` (PEM format).
-        public var clientKey: CryptoContainer?
+        public var clientKey: Encryption?
 
         /// The optional TLS wrapping.
         public var tlsWrap: TLSWrap?
@@ -417,13 +353,13 @@ extension OpenVPN {
         public let compressionAlgorithm: CompressionAlgorithm?
 
         /// - Seealso: `ConfigurationBuilder.ca`
-        public let ca: CryptoContainer?
+        public let ca: Encryption?
 
         /// - Seealso: `ConfigurationBuilder.clientCertificate`
-        public let clientCertificate: CryptoContainer?
+        public let clientCertificate: Encryption?
 
         /// - Seealso: `ConfigurationBuilder.clientKey`
-        public let clientKey: CryptoContainer?
+        public let clientKey: Encryption?
 
         /// - Seealso: `ConfigurationBuilder.tlsWrap`
         public let tlsWrap: TLSWrap?

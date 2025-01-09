@@ -79,11 +79,16 @@ extension OpenVPN {
                 return key(at: 2)
             }
         }
+        
+        public init?(file: String, direction: Direction?) {
+            let lines = file.split(separator: "\n")
+            self.init(lines: lines, direction: direction)
+        }
+        public init(biData data: Data) {
+            self.init(data: data, direction: nil)
+        }
 
-        /// Returns the decryption key.
-        ///
-        /// - Precondition: `direction` must be non-nil.
-        /// - Seealso: `ConfigurationBuilder.tlsWrap`
+        
         public var cipherDecryptKey: ZeroingData {
             guard let direction = direction else {
                 preconditionFailure()
@@ -91,31 +96,11 @@ extension OpenVPN {
             switch direction {
             case .server:
                 return key(at: 2)
-
             case .client:
                 return key(at: 0)
             }
         }
 
-        /// Returns the HMAC sending key.
-        ///
-        /// - Seealso: `ConfigurationBuilder.tlsWrap`
-        public var hmacSendKey: ZeroingData {
-            guard let direction = direction else {
-                return key(at: 1)
-            }
-            switch direction {
-            case .server:
-                return key(at: 1)
-
-            case .client:
-                return key(at: 3)
-            }
-        }
-
-        /// Returns the HMAC receiving key.
-        ///
-        /// - Seealso: `ConfigurationBuilder.tlsWrap`
         public var hmacReceiveKey: ZeroingData {
             guard let direction = direction else {
                 return key(at: 1)
@@ -123,115 +108,94 @@ extension OpenVPN {
             switch direction {
             case .server:
                 return key(at: 3)
-
             case .client:
                 return key(at: 1)
             }
         }
 
-        /**
-         Initializes with data and direction.
-         
-         - Parameter data: The key data.
-         - Parameter direction: The key direction, or bidirectional if nil. For tls-crypt behavior, must not be nil.
-         */
         public init(data: Data, direction: Direction?) {
             precondition(data.count == StaticKey.contentLength)
             secureData = Z(data)
             self.direction = direction
         }
 
-        /**
-         Initializes with file content and direction.
-         
-         - Parameter file: The text file containing the key.
-         - Parameter direction: The key direction, or bidirectional if nil.
-         */
-        public init?(file: String, direction: Direction?) {
-            let lines = file.split(separator: "\n")
-            self.init(lines: lines, direction: direction)
+        public var hmacSendKey: ZeroingData {
+            guard let direction = direction else {
+                return key(at: 1)
+            }
+            switch direction {
+            case .server:
+                return key(at: 1)
+            case .client:
+                return key(at: 3)
+            }
         }
 
+        
         public init?(lines: [Substring], direction: Direction?) {
-            var isHead = true
+            var isHeaderSection = true
             var hexLines: [Substring] = []
 
-            for l in lines {
-                if isHead {
-                    guard !l.hasPrefix("#") else {
+            for line in lines {
+                if isHeaderSection {
+                    if line.hasPrefix("#") {
                         continue
                     }
-                    guard l == StaticKey.fileHead else {
+                    guard line == StaticKey.fileHead else {
                         return nil
                     }
-                    isHead = false
+                    isHeaderSection = false
                     continue
                 }
-                guard let first = l.first else {
-                    return nil
-                }
-                if first == "-" {
-                    guard l == StaticKey.fileFoot else {
+
+                if line.first == "-" {
+                    guard line == StaticKey.fileFoot else {
                         return nil
                     }
                     break
                 }
-                hexLines.append(l)
+
+                hexLines.append(line)
             }
 
-            let hex = String(hexLines.joined())
-            guard hex.count == 2 * StaticKey.contentLength else {
+            let hexString = hexLines.joined()
+            guard hexString.count == 2 * StaticKey.contentLength,
+                  hexString.rangeOfCharacter(from: StaticKey.nonHexCharset) == nil else {
                 return nil
             }
-            if let _ = hex.rangeOfCharacter(from: StaticKey.nonHexCharset) {
-                return nil
-            }
-            let data = Data(hex: hex)
 
+            let data = Data(hex: String(hexString))
             self.init(data: data, direction: direction)
         }
-
-        /**
-         Initializes as bidirectional.
-         
-         - Parameter biData: The key data.
-         */
-        public init(biData data: Data) {
-            self.init(data: data, direction: nil)
-        }
-
+        
         private func key(at: Int) -> ZeroingData {
-            let size = secureData.count / StaticKey.keyCount // 64 bytes each
+            let size = secureData.count / StaticKey.keyCount
             assert(size == StaticKey.keyLength)
             return secureData.withOffset(at * size, count: size)
-        }
-
-        public static func deserialized(_ data: Data) throws -> StaticKey {
-            return try JSONDecoder().decode(StaticKey.self, from: data)
         }
 
         public func serialized() -> Data? {
             return try? JSONEncoder().encode(self)
         }
 
-        // MARK: Equatable
+        public static func deserialized(_ data: Data) throws -> StaticKey {
+            return try JSONDecoder().decode(StaticKey.self, from: data)
+        }
 
         public static func ==(lhs: Self, rhs: Self) -> Bool {
             return lhs.secureData.toData() == rhs.secureData.toData()
-        }
-
-        // MARK: Codable
-
-        public init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            secureData = Z(try container.decode(Data.self, forKey: .data))
-            direction = try container.decodeIfPresent(Direction.self, forKey: .dir)
         }
 
         public func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(secureData.toData(), forKey: .data)
             try container.encodeIfPresent(direction, forKey: .dir)
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            secureData = Z(try container.decode(Data.self, forKey: .data))
+            direction = try container.decodeIfPresent(Direction.self, forKey: .dir)
         }
 
         public var hexString: String {
