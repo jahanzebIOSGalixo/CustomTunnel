@@ -198,7 +198,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
 
         cfg._appexSetLastError(nil)
 
-        guard OpenVPN.prepareRandomNumberGenerator(seedLength: prngSeedLength) else {
+        guard OpenVPN.unknown(count: prngSeedLength) else {
             completionHandler(ConfigurationError.prngInitialization)
             return
         }

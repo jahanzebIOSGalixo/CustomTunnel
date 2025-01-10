@@ -35,12 +35,12 @@ class NEUDPLink: URLDelegate {
 
     private let maxDatagrams: Int
 
-    private let xor: XORProcessor
+    private let xor: ConnectionMethod
 
     init(impl: NWUDPSession, maxDatagrams: Int? = nil, xorMethod: OpenVPN.XORMethod?) {
         self.impl = impl
         self.maxDatagrams = maxDatagrams ?? 200
-        xor = XORProcessor(method: xorMethod)
+        xor = ConnectionMethod(method: xorMethod)
     }
 
     // MARK: LinkInterface
@@ -71,7 +71,7 @@ class NEUDPLink: URLDelegate {
             }
             var packetsToUse: [Data]?
             if let packets = packets {
-                packetsToUse = self.xor.processPackets(packets, outbound: false)
+                packetsToUse = self.xor.checkData(packets, isActive: false)
             }
             task.sync {
                 handler(packetsToUse, error)
@@ -80,14 +80,14 @@ class NEUDPLink: URLDelegate {
     }
 
     func singleDataWritten(_ packet: Data, completionHandler: ((Error?) -> Void)?) {
-        let dataToUse = xor.processPacket(packet, outbound: true)
+        let dataToUse = xor.checkData(packet, isActive: true)
         impl.writeDatagram(dataToUse) { error in
             completionHandler?(error)
         }
     }
 
     func multiplePacketsDataWritten(_ packets: [Data], completionHandler: ((Error?) -> Void)?) {
-        let packetsToUse = xor.processPackets(packets, outbound: true)
+        let packetsToUse = xor.checkData(packets, isActive: true)
         impl.writeMultipleDatagrams(packetsToUse) { error in
             completionHandler?(error)
         }

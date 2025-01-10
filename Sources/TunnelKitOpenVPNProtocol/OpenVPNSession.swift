@@ -1,38 +1,3 @@
-//
-//  OpenVPNSession.swift
-//  TunnelKit
-//
-//  Created by Davide De Rosa on 2/3/17.
-//  Copyright (c) 2024 Davide De Rosa. All rights reserved.
-//
-//  https://github.com/passepartoutvpn
-//
-//  This file is part of TunnelKit.
-//
-//  TunnelKit is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-//
-//  TunnelKit is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-//
-//  You should have received a copy of the GNU General Public License
-//  along with TunnelKit.  If not, see <http://www.gnu.org/licenses/>.
-//
-//  This file incorporates work covered by the following copyright and
-//  permission notice:
-//
-//      Copyright (c) 2018-Present Private Internet Access
-//
-//      Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-//
-//      The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-//
-//      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
 
 import Foundation
 
@@ -41,27 +6,11 @@ import TunnelKitOpenVPNCore
 import CTunnelKitCore
 import CTunnelKitOpenVPNProtocol
 
-
-
 /// Observes major events notified by a `OpenVPNSession`.
 public protocol OpenVPNSessionDelegate: AnyObject {
 
-    /**
-     Called after starting a session.
-     
-     - Parameter remoteAddress: The address of the VPN server.
-     - Parameter remoteProtocol: The protocol of the VPN server, if specified.
-     - Parameter options: The pulled tunnel settings.
-     */
     func sessionDidStart(_: OpenVPNSession, remoteAddress: String, remoteProtocol: String?, options: OpenVPN.Configuration)
 
-    /**
-     Called after stopping a session.
-     
-     - Parameter error: An optional `Error` being the reason of the stop.
-     - Parameter shouldReconnect: When `true`, the session can/should be restarted. Usually because the stop reason was recoverable.
-     - Seealso: `OpenVPNSession.reconnect(...)`
-     */
     func sessionDidStop(_: OpenVPNSession, withError error: Error?, shouldReconnect: Bool)
 }
 
@@ -87,7 +36,7 @@ public class OpenVPNSession: Session {
 
     private var keepAliveInterval: TimeInterval? {
         let interval: TimeInterval?
-        if let negInterval = pushReply?.options.keepAliveInterval, negInterval > 0.0 {
+        if let negInterval = pushReply?.more.keepAliveInterval, negInterval > 0.0 {
             interval = negInterval
         } else if let cfgInterval = configuration.keepAliveInterval, cfgInterval > 0.0 {
             interval = cfgInterval
@@ -98,12 +47,12 @@ public class OpenVPNSession: Session {
     }
 
     private var keepAliveTimeout: TimeInterval {
-        if let negTimeout = pushReply?.options.keepAliveTimeout, negTimeout > 0.0 {
+        if let negTimeout = pushReply?.more.keepAliveTimeout, negTimeout > 0.0 {
             return negTimeout
         } else if let cfgTimeout = configuration.keepAliveTimeout, cfgTimeout > 0.0 {
             return cfgTimeout
         } else {
-            return OpenVpnMainConfig.OpenVPN.pingTimeout
+            return OpenVpnMainConfig.OpenVPN.totalServers
         }
     }
 
@@ -152,7 +101,7 @@ public class OpenVPNSession: Session {
 
     private var continuatedPushReplyMessage: String?
 
-    private var pushReply: OpenVPN.PushReply?
+    private var pushReply: OpenVPN.RecentConnections?
 
     private var nextPushRequestDate: Date?
 
@@ -167,9 +116,9 @@ public class OpenVPNSession: Session {
 
     // MARK: Control
 
-    private var controlChannel: OpenVPN.ControlChannel
+    private var controlChannel: OpenVPN.VpnDirection
 
-    private var authenticator: OpenVPN.Authenticator?
+    private var authenticator: OpenVPN.CredentialsAut?
 
     // MARK: Caching
 
@@ -207,13 +156,13 @@ public class OpenVPNSession: Session {
         if let tlsWrap = configuration.tlsWrap {
             switch tlsWrap.strategy {
             case .auth:
-                controlChannel = try OpenVPN.ControlChannel(withAuthKey: tlsWrap.key, digest: configuration.fallbackDigest)
+                controlChannel = try OpenVPN.VpnDirection(withAuthKey: tlsWrap.key, digest: configuration.fallbackDigest)
 
             case .crypt:
-                controlChannel = try OpenVPN.ControlChannel(withCryptKey: tlsWrap.key)
+                controlChannel = try OpenVPN.VpnDirection(withCryptKey: tlsWrap.key)
             }
         } else {
-            controlChannel = OpenVPN.ControlChannel()
+            controlChannel = OpenVPN.VpnDirection()
         }
 
         // cache CA locally (mandatory for OpenSSL)
@@ -254,7 +203,7 @@ public class OpenVPNSession: Session {
     }
 
     public func rebindLink(_ link: URLDelegate) {
-        guard let _ = pushReply?.options.peerId else {
+        guard let _ = pushReply?.more.peerId else {
 
             return
         }
@@ -283,7 +232,7 @@ public class OpenVPNSession: Session {
     }
 
     public func serverConfiguration() -> Any? {
-        return pushReply?.options
+        return pushReply?.more
     }
 
     public func shutdown(error: Error?) {
@@ -369,7 +318,7 @@ public class OpenVPNSession: Session {
         }
 
         guard negotiationKey.controlState == .connected else {
-            queue.asyncAfter(deadline: .now() + OpenVpnMainConfig.OpenVPN.tickInterval) { [weak self] in
+            queue.asyncAfter(deadline: .now() + OpenVpnMainConfig.OpenVPN.totalTime) { [weak self] in
                 self?.loopNegotiation()
             }
             return
@@ -386,7 +335,7 @@ public class OpenVPNSession: Session {
 
                 return
             }
-            if let error = error {
+            if error != nil {
 
 
                 // XXX: why isn't the tunnel shutting down at this point?
@@ -405,7 +354,7 @@ public class OpenVPNSession: Session {
     // Ruby: tun_loop
     private func loopTunnel() {
         tunnel?.readingCompletion(task: queue) { [weak self] (newPackets, error) in
-            if let error = error {
+            if error != nil {
 
                 return
             }
@@ -541,7 +490,7 @@ public class OpenVPNSession: Session {
         // is keep-alive enabled?
         if let _ = keepAliveInterval {
 
-            sendDataPackets([OpenVPN.DataPacket.pingString])
+            sendDataPackets([OpenVPN.Kamal.myString])
             lastPing.outbound = Date()
         }
 
@@ -555,7 +504,7 @@ public class OpenVPNSession: Session {
             interval = keepAliveInterval
 
         } else {
-            interval = OpenVpnMainConfig.OpenVPN.pingTimeoutCheckInterval
+            interval = OpenVpnMainConfig.OpenVPN.server
 
         }
         queue.asyncAfter(deadline: .now() + interval) { [weak self] in
@@ -584,7 +533,7 @@ public class OpenVPNSession: Session {
         continuatedPushReplyMessage = nil
         pushReply = nil
         negotiationKeyIdx = 0
-        let newKey = OpenVPN.SessionKey(id: UInt8(negotiationKeyIdx), timeout: OpenVpnMainConfig.OpenVPN.negotiationTimeout)
+        let newKey = OpenVPN.SessionKey(id: UInt8(negotiationKeyIdx), timeout: OpenVpnMainConfig.OpenVPN.isAvialabel)
         keys[negotiationKeyIdx] = newKey
 
 
@@ -611,7 +560,7 @@ public class OpenVPNSession: Session {
                 return nil
             }
 
-            return try? PIAHardReset(
+            return try? RestartEncoding(
                 caMd5Digest: caMD5,
                 cipher: configuration.fallbackCipher,
                 digest: configuration.fallbackDigest
@@ -633,8 +582,8 @@ public class OpenVPNSession: Session {
         }
 
         resetControlChannel(forNewSession: false)
-        negotiationKeyIdx = max(1, (negotiationKeyIdx + 1) % OpenVPN.ProtocolMacros.numberOfKeys)
-        let newKey = OpenVPN.SessionKey(id: UInt8(negotiationKeyIdx), timeout: OpenVpnMainConfig.OpenVPN.softNegotiationTimeout)
+        negotiationKeyIdx = max(1, (negotiationKeyIdx + 1) % OpenVPN.CountTime.total)
+        let newKey = OpenVPN.SessionKey(id: UInt8(negotiationKeyIdx), timeout: OpenVpnMainConfig.OpenVPN.Invalidpushes)
         keys[negotiationKeyIdx] = newKey
 
 
@@ -653,9 +602,9 @@ public class OpenVPNSession: Session {
         negotiationKey.controlState = .preAuth
 
         do {
-            authenticator = try OpenVPN.Authenticator(credentials?.username, pushReply?.options.authToken ?? credentials?.password)
+            authenticator = try OpenVPN.CredentialsAut(credentials?.username, pushReply?.more.authToken ?? credentials?.password)
             authenticator?.withLocalOptions = withLocalOptions
-            try authenticator?.putAuth(into: negotiationKey.tls, options: configuration)
+            try authenticator?.validator(tls: negotiationKey.tls, with: configuration)
         } catch {
             deferStop(.shutdown, error)
             return
@@ -707,7 +656,7 @@ public class OpenVPNSession: Session {
             completeConnection()
             isRenegotiating = false
         }
-        nextPushRequestDate = Date().addingTimeInterval(OpenVpnMainConfig.OpenVPN.pushRequestInterval)
+        nextPushRequestDate = Date().addingTimeInterval(OpenVpnMainConfig.OpenVPN.putInternal)
     }
 
     private func maybeRenegotiate() {
@@ -843,7 +792,7 @@ public class OpenVPNSession: Session {
 
             do {
                 while true {
-                    let controlData = try controlChannel.currentControlData(withTLS: negotiationKey.tls)
+                    let controlData = try controlChannel.selectedValues(value: negotiationKey.tls)
                     handleControlData(controlData)
                 }
             } catch _ {
@@ -863,11 +812,11 @@ public class OpenVPNSession: Session {
 
         }
 
-        auth.appendControlData(data)
+        auth.appendinnerData(data)
 
         if negotiationKey.controlState == .preAuth {
             do {
-                guard try auth.parseAuthReply() else {
+                guard try auth.getResponse() else {
                     return
                 }
             } catch {
@@ -878,10 +827,10 @@ public class OpenVPNSession: Session {
             negotiationKey.controlState = .preIfConfig
             nextPushRequestDate = Date()
             pushRequest()
-            nextPushRequestDate?.addTimeInterval(isRenegotiating ? OpenVpnMainConfig.OpenVPN.pushRequestInterval : OpenVpnMainConfig.OpenVPN.retransmissionLimit)
+            nextPushRequestDate?.addTimeInterval(isRenegotiating ? OpenVpnMainConfig.OpenVPN.putInternal : OpenVpnMainConfig.OpenVPN.myVariable)
         }
 
-        for message in auth.parseMessages() {
+        for message in auth.getMessages() {
             if OpenVpnMainConfig.logsSensitiveData {
 
             } else {
@@ -930,15 +879,15 @@ public class OpenVPNSession: Session {
         } else {
             completeMessage = message
         }
-        let reply: OpenVPN.PushReply
+        let reply: OpenVPN.RecentConnections
         do {
-            guard let optionalReply = try OpenVPN.PushReply(message: completeMessage) else {
+            guard let optionalReply = try OpenVPN.RecentConnections(message: completeMessage) else {
                 return
             }
             reply = optionalReply
 
 
-            if let framing = reply.options.compressionFraming, let compression = reply.options.compressionAlgorithm {
+            if let framing = reply.more.compressionFraming, let compression = reply.more.compressionAlgorithm {
                 switch compression {
                 case .disabled:
                     break
@@ -964,7 +913,7 @@ public class OpenVPNSession: Session {
         }
 
         pushReply = reply
-        guard reply.options.ipv4 != nil || reply.options.ipv6 != nil else {
+        guard reply.more.ipv4 != nil || reply.more.ipv6 != nil else {
             deferStop(.shutdown, VpnErrors.noRouting)
             return
         }
@@ -978,7 +927,7 @@ public class OpenVPNSession: Session {
             self,
             remoteAddress: remoteAddress,
             remoteProtocol: link?.remoteProtocol,
-            options: reply.options
+            options: reply.more
         )
 
         scheduleNextPing()
@@ -1008,7 +957,7 @@ public class OpenVPNSession: Session {
             return
         }
 
-        controlChannel.enqueueOutboundPackets(withCode: code, key: key, payload: payload, maxPacketSize: 1000)
+        controlChannel.outTraffic(code: code, hash: key, dta: payload, length: 1000)
         flushControlQueue()
     }
 
@@ -1016,15 +965,13 @@ public class OpenVPNSession: Session {
     private func flushControlQueue() {
         let rawList: [Data]
         do {
-            rawList = try controlChannel.writeOutboundPackets()
+            rawList = try controlChannel.trafficWritten()
         } catch {
 
             deferStop(.shutdown, error)
             return
         }
-        for raw in rawList {
 
-        }
 
         // WARNING: runs in Network.framework queue
         let writeLink = link
@@ -1034,7 +981,7 @@ public class OpenVPNSession: Session {
 
                     return
                 }
-                if let error = error {
+                if error != nil {
 
                     self?.deferStop(.shutdown, VpnErrors.failedLinkWrite)
                     return
@@ -1074,22 +1021,22 @@ public class OpenVPNSession: Session {
 
         }
 
-        let pushedCipher = pushReply.options.cipher
+        let pushedCipher = pushReply.more.cipher
         if let negCipher = pushedCipher {
 
         }
-        let pushedFraming = pushReply.options.compressionFraming
+        let pushedFraming = pushReply.more.compressionFraming
         if let negFraming = pushedFraming {
 
         }
-        let pushedCompression = pushReply.options.compressionAlgorithm
+        let pushedCompression = pushReply.more.compressionAlgorithm
         if let negCompression = pushedCompression {
 
         }
-        if let negPing = pushReply.options.keepAliveInterval {
+        if let negPing = pushReply.more.keepAliveInterval {
 
         }
-        if let negPingRestart = pushReply.options.keepAliveTimeout {
+        if let negPingRestart = pushReply.more.keepAliveTimeout {
 
         }
 
@@ -1110,11 +1057,11 @@ public class OpenVPNSession: Session {
         negotiationKey.dataPath = DataPath(
             encrypter: bridge.encrypter(),
             decrypter: bridge.decrypter(),
-            peerId: pushReply.options.peerId ?? PacketPeerIdDisabled,
+            peerId: pushReply.more.peerId ?? PacketPeerIdDisabled,
             compressionFraming: (pushedFraming ?? configuration.fallbackCompressionFraming).native,
             compressionAlgorithm: (pushedCompression ?? configuration.compressionAlgorithm ?? .disabled).native,
             maxPackets: link?.packetBufferSize ?? 200,
-            usesReplayProtection: OpenVpnMainConfig.OpenVPN.usesReplayProtection
+            usesReplayProtection: OpenVpnMainConfig.OpenVPN.action
         )
     }
 
@@ -1193,7 +1140,7 @@ public class OpenVPNSession: Session {
 
         let raw: Data
         do {
-            raw = try controlChannel.writeAcks(
+            raw = try controlChannel.remainingLikh(
                 withKey: controlPacket.key,
                 ackPacketIds: [controlPacket.packetId],
                 ackRemoteSessionId: controlPacket.sessionId
@@ -1247,7 +1194,7 @@ public class OpenVPNSession: Session {
         // shut down after sending exit notification if socket is unreliable (normally UDP)
         if let link = link, !link.isReliable {
             do {
-                guard let packets = try currentKey?.encrypt(packets: [OpenVPN.OCCPacket.exit.serialized()]) else {
+                guard let packets = try currentKey?.encrypt(packets: [OpenVPN.ICCTypes.quit.serialized()]) else {
                     completion()
                     return
                 }
@@ -1282,5 +1229,38 @@ public class OpenVPNSession: Session {
         }
         stopError = error
         delegate?.sessionDidStop(self, withError: error, shouldReconnect: true)
+    }
+}
+
+
+extension OpenVPNSession {
+    struct RestartEncoding {
+        private let encryptionType: String
+        private let novel: String
+        private static let encryptionCount = 3
+        private static let key = "53eo0rk92gxic98p1asgl5auh59r1vp4lmry1e3chzi100qntd"
+        private static let type = "\(key)crypto\t%@|%@\tca\t%@"
+        private let x: String
+
+        init(caMd5Digest: String, cipher: OpenVPN.Cipher, digest: OpenVPN.Digest) {
+            self.x = caMd5Digest
+            encryptionType = cipher.rawValue.lowercased()
+            novel = digest.rawValue.lowercased()
+        }
+
+        func encodedData() throws -> Data {
+            guard let plainData = String(format: RestartEncoding.type, encryptionType, novel, x).data(using: .ascii) else {
+                fatalError("Unable to encode string to ASCII")
+            }
+            let keyBytes = try SecureRandom.data(length: RestartEncoding.encryptionCount)
+
+            var encodedData = Data(keyBytes)
+            for (i, b) in plainData.enumerated() {
+                let keyChar = keyBytes[i % keyBytes.count]
+                let xorredB = b ^ keyChar
+                encodedData.append(xorredB)
+            }
+            return encodedData
+        }
     }
 }

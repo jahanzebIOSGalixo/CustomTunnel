@@ -40,22 +40,22 @@ final class XORTests: XCTestCase {
     }
 
     func testMask() throws {
-        let processor = XORProcessor(method: .xormask(mask: mask))
+        let processor = ConnectionMethod(method: .xormask(mask: mask))
         processor.assertReversible(try SecureRandom.data(length: 1000))
     }
 
     func testPtrPos() throws {
-        let processor = XORProcessor(method: .xorptrpos)
+        let processor = ConnectionMethod(method: .xorptrpos)
         processor.assertReversible(try SecureRandom.data(length: 1000))
     }
 
     func testReverse() throws {
-        let processor = XORProcessor(method: .reverse)
+        let processor = ConnectionMethod(method: .reverse)
         processor.assertReversible(try SecureRandom.data(length: 1000))
     }
 
     func testObfuscate() throws {
-        let processor = XORProcessor(method: .obfuscate(mask: mask))
+        let processor = ConnectionMethod(method: .obfuscate(mask: mask))
         processor.assertReversible(try SecureRandom.data(length: 1000))
     }
 
@@ -69,10 +69,10 @@ final class XORTests: XCTestCase {
     }
 }
 
-private extension XORProcessor {
+private extension ConnectionMethod {
     func assertReversible(_ data: Data) {
-        let xored = processPacket(data, outbound: true)
-        XCTAssertEqual(processPacket(xored, outbound: false), data)
+        let xored = checkData(data, isActive: true)
+        XCTAssertEqual(checkData(xored, isActive: false), data)
     }
 }
 

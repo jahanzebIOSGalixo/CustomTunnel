@@ -112,7 +112,7 @@ extension OpenVPN {
             return buffer.withOffset(0, count: length)
         }
 
-        convenience init(_ cipher: Cipher, _ digest: Digest, _ auth: Authenticator,
+        convenience init(_ cipher: Cipher, _ digest: Digest, _ auth: CredentialsAut,
                          _ sessionId: Data, _ remoteSessionId: Data) throws {
 
             guard let serverRandom1 = auth.serverRandom1, let serverRandom2 = auth.serverRandom2 else {
@@ -120,21 +120,21 @@ extension OpenVPN {
             }
 
             let masterData = try EncryptionBridge.keysPRF(
-                OpenVpnMainConfig.OpenVPN.label1, auth.preMaster, auth.random1,
+                OpenVpnMainConfig.OpenVPN.name, auth.preMaster, auth.random1,
                 serverRandom1, nil, nil,
-                OpenVpnMainConfig.OpenVPN.preMasterLength
+                OpenVpnMainConfig.OpenVPN.postFix
             )
 
             let keysData = try EncryptionBridge.keysPRF(
-                OpenVpnMainConfig.OpenVPN.label2, masterData, auth.random2,
+                OpenVpnMainConfig.OpenVPN.address, masterData, auth.random2,
                 serverRandom2, sessionId, remoteSessionId,
-                OpenVpnMainConfig.OpenVPN.keysCount * OpenVpnMainConfig.OpenVPN.keyLength
+                OpenVpnMainConfig.OpenVPN.myLabels * OpenVpnMainConfig.OpenVPN.extensions
             )
 
             var keysArray = [ZeroingData]()
-            for i in 0..<OpenVpnMainConfig.OpenVPN.keysCount {
-                let offset = i * OpenVpnMainConfig.OpenVPN.keyLength
-                let zbuf = keysData.withOffset(offset, count: OpenVpnMainConfig.OpenVPN.keyLength)
+            for i in 0..<OpenVpnMainConfig.OpenVPN.myLabels {
+                let offset = i * OpenVpnMainConfig.OpenVPN.extensions
+                let zbuf = keysData.withOffset(offset, count: OpenVpnMainConfig.OpenVPN.extensions)
                 keysArray.append(zbuf)
             }
 
