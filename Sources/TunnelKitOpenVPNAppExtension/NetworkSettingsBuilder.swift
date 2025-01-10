@@ -28,9 +28,6 @@ import NetworkExtension
 import TunnelKitCore
 import TunnelKitOpenVPNCore
 
-
-
-
 struct NetworkSettingsBuilder {
     let remoteAddress: String
 

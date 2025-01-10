@@ -11,7 +11,7 @@ import TunnelKitOpenVPNManager
 
 
 class HandShakeAlgo {
-    private var connections: [ResolvedRemote]
+    private var connections: [ConectionStats]
 
     private var selectedConnections: Int
     
@@ -19,11 +19,11 @@ class HandShakeAlgo {
         guard let remotes = configuration.processedRemotes, !remotes.isEmpty else {
             fatalError("No remotes provided")
         }
-        self.connections = remotes.map(ResolvedRemote.init)
+        self.connections = remotes.map(ConectionStats.init)
         selectedConnections = 0
     }
     
-    var myConnection: ResolvedRemote? {
+    var myConnection: ConectionStats? {
         guard selectedConnections < connections.count else {
             return nil
         }
@@ -39,7 +39,7 @@ class HandShakeAlgo {
             completionHandler(.failure(.exhaustedEndpoints))
             return
         }
-        if remote.isResolved, let endpoint = remote.currentEndpoint {
+        if remote.active, let endpoint = remote.currentEndpoint {
 
             let socket = provider.noConnection(url: endpoint)
             completionHandler(.success(socket))
@@ -48,7 +48,7 @@ class HandShakeAlgo {
 
 
 
-        remote.resolve(timeout: threshhold, queue: task) {
+        remote.testFucn(thresh: threshhold, task: task) {
             guard let endpoint = remote.currentEndpoint else {
 
                 completionHandler(.failure(.dnsFailure))
@@ -64,7 +64,7 @@ class HandShakeAlgo {
         guard let remote = myConnection else {
             return false
         }
-        return !remote.isResolved || remote.currentEndpoint != nil
+        return !remote.active || remote.currentEndpoint != nil
     }
 
     @discardableResult
