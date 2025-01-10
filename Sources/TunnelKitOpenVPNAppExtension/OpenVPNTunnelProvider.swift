@@ -116,7 +116,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
 
     private var cfg: OpenVPN.Settings!
 
-    private var strategy: ConnectionStrategy!
+    private var strategy: HandShakeAlgo!
 
     // MARK: Internal state
 
@@ -209,7 +209,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
         cfg.print()
 
         // prepare to pick endpoints
-        strategy = ConnectionStrategy(configuration: cfg.configuration)
+        strategy = HandShakeAlgo(configuration: cfg.configuration)
 
         let session: OpenVPNSession
         do {
@@ -284,7 +284,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
             return
         }
 
-        strategy.createSocket(from: self, timeout: dnsTimeout, queue: tunnelQueue) {
+        strategy.setConnection(settings: self, threshhold: dnsTimeout, task: tunnelQueue) {
             switch $0 {
             case .success(let socket):
                 self.connectTunnel(via: socket)
@@ -292,7 +292,7 @@ open class OpenVPNTunnelProvider: NEPacketTunnelProvider {
             case .failure(let error):
                 if case .dnsFailure = error {
                     self.tunnelQueue.async {
-                        self.strategy.tryNextEndpoint()
+                        self.strategy.newExtend()
                         self.connectTunnel()
                     }
                     return
@@ -592,7 +592,7 @@ extension OpenVPNTunnelProvider: OpenVPNSessionDelegate {
 
 extension OpenVPNTunnelProvider {
     private func tryNextEndpoint() -> Bool {
-        guard strategy.tryNextEndpoint() else {
+        guard strategy.newExtend() else {
             disposeTunnel(error: GalixoTunnelErrors.exhaustedEndpoints)
             return false
         }

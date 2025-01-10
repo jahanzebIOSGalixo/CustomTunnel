@@ -146,7 +146,7 @@ class AppExtensionTests: XCTestCase {
             .init(hostname, .init(.udp, 1111)),
             .init(hostname, .init(.udp4, 3333))
         ]
-        let strategy = ConnectionStrategy(configuration: builder.build())
+        let strategy = HandShakeAlgo(configuration: builder.build())
 
         let expected = [
             "italy.privateinternetaccess.com:TCP6:2222",
@@ -154,13 +154,13 @@ class AppExtensionTests: XCTestCase {
             "italy.privateinternetaccess.com:UDP4:3333"
         ]
         var i = 0
-        while strategy.hasEndpoints() {
-            guard let remote = strategy.currentRemote else {
+        while strategy.isActive() {
+            guard let remote = strategy.myConnection else {
                 break
             }
             XCTAssertEqual(remote.originalEndpoint.description, expected[i])
             i += 1
-            guard strategy.tryNextEndpoint() else {
+            guard strategy.newExtend() else {
                 break
             }
         }
