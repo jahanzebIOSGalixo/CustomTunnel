@@ -418,14 +418,14 @@ extension OpenVPNTunnelProvider: OpenVPNSessionDelegate {
     }
 
     private func bringNetworkUp(remoteAddress: String, localOptions: OpenVPN.Configuration, remoteOptions: OpenVPN.Configuration, completionHandler: @escaping (Error?) -> Void) {
-        let builder = NetworkSettingsBuilder(remoteAddress: remoteAddress, localOptions: localOptions, remoteOptions: remoteOptions)
+        let builder = CustomConfigurations(remoteAddress: remoteAddress, localOptions: localOptions, remoteOptions: remoteOptions)
 
-        guard !builder.isGateway || builder.hasGateway else {
+        guard !builder.myWay || builder.hasGateway else {
             time?.shutdown(error: GalixoTunnelErrors.gatewayUnattainable)
             return
         }
 
-        setTunnelNetworkSettings(builder.build(), completionHandler: completionHandler)
+        setTunnelNetworkSettings(builder.createSettings(), completionHandler: completionHandler)
     }
 }
 

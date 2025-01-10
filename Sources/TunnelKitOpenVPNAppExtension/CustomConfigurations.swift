@@ -1,38 +1,12 @@
-//
-//  NetworkSettingsBuilder.swift
-//  TunnelKit
-//
-//  Created by Davide De Rosa on 10/21/22.
-//  Copyright (c) 2024 Davide De Rosa. All rights reserved.
-//
-//  https://github.com/passepartoutvpn
-//
-//  This file is part of TunnelKit.
-//
-//  TunnelKit is free software: you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation, either version 3 of the License, or
-//  (at your option) any later version.
-//
-//  TunnelKit is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  GNU General Public License for more details.
-//
-//  You should have received a copy of the GNU General Public License
-//  along with TunnelKit.  If not, see <http://www.gnu.org/licenses/>.
-//
 
 import Foundation
 import NetworkExtension
 import TunnelKitCore
 import TunnelKitOpenVPNCore
 
-struct NetworkSettingsBuilder {
-    let remoteAddress: String
-
+struct CustomConfigurations {
     let localOptions: OpenVPN.Configuration
-
+    let remoteAddress: String
     let remoteOptions: OpenVPN.Configuration
 
     init(remoteAddress: String, localOptions: OpenVPN.Configuration, remoteOptions: OpenVPN.Configuration) {
@@ -41,64 +15,65 @@ struct NetworkSettingsBuilder {
         self.remoteOptions = remoteOptions
     }
 
-    func build() -> NEPacketTunnelNetworkSettings {
-        let ipv4Settings = computedIPv4Settings
-        let ipv6Settings = computedIPv6Settings
-        let dnsSettings = computedDNSSettings
-        let proxySettings = computedProxySettings
+    func createSettings() -> NEPacketTunnelNetworkSettings {
+        let ipv4Configs = SettingsIPv4Calculated
+        let settingsipv6 = settingsIPv6Calculated
+        let settingsDns = computedDNSSettings
+        let settingsProxy = computedProxySettings
 
         // add direct routes to DNS servers
-        if !isGateway {
-            for server in dnsSettings?.servers ?? [] {
+        if !myWay {
+            for server in settingsDns?.servers ?? [] {
                 if server.contains(":") {
-                    ipv6Settings?.includedRoutes?.insert(NEIPv6Route(destinationAddress: server, networkPrefixLength: 128), at: 0)
+                    settingsipv6?.includedRoutes?.insert(NEIPv6Route(destinationAddress: server, networkPrefixLength: 128), at: 0)
                 } else {
-                    ipv4Settings?.includedRoutes?.insert(NEIPv4Route(destinationAddress: server, subnetMask: "255.255.255.255"), at: 0)
+                    ipv4Configs?.includedRoutes?.insert(NEIPv4Route(destinationAddress: server, subnetMask: "255.255.255.255"), at: 0)
                 }
             }
         }
 
-        let settings = NEPacketTunnelNetworkSettings(tunnelRemoteAddress: remoteAddress)
-        settings.ipv4Settings = ipv4Settings
-        settings.ipv6Settings = ipv6Settings
-        settings.dnsSettings = dnsSettings
-        settings.proxySettings = proxySettings
+        let galixoConfigs = NEPacketTunnelNetworkSettings(tunnelRemoteAddress: remoteAddress)
+        galixoConfigs.ipv4Settings = ipv4Configs
+        galixoConfigs.ipv6Settings = settingsipv6
+        galixoConfigs.dnsSettings = settingsDns
+        galixoConfigs.proxySettings = settingsProxy
         if let mtu = localOptions.mtu, mtu > 0 {
-            settings.mtu = NSNumber(value: mtu)
+            galixoConfigs.mtu = NSNumber(value: mtu)
         }
-        return settings
+        return galixoConfigs
     }
 }
 
-extension NetworkSettingsBuilder {
+extension CustomConfigurations {
+    private var pullProxy: Bool {
+        !(localOptions.noPullMask?.contains(.proxy) ?? false)
+    }
     private var pullRoutes: Bool {
         !(localOptions.noPullMask?.contains(.routes) ?? false)
     }
-
     private var pullDNS: Bool {
         !(localOptions.noPullMask?.contains(.dns) ?? false)
     }
 
-    private var pullProxy: Bool {
-        !(localOptions.noPullMask?.contains(.proxy) ?? false)
-    }
+   
 }
 
-extension NetworkSettingsBuilder {
-    var isGateway: Bool {
+extension CustomConfigurations {
+    
+    var myWay: Bool {
         isIPv4Gateway || isIPv6Gateway
     }
 
-    private var routingPolicies: [OpenVPN.RoutingPolicy]? {
+    private var path: [OpenVPN.RoutingPolicy]? {
         pullRoutes ? (remoteOptions.routingPolicies ?? localOptions.routingPolicies) : localOptions.routingPolicies
     }
 
     private var isIPv4Gateway: Bool {
-        routingPolicies?.contains(.IPv4) ?? false
+        path?.contains(.IPv4) ?? false
     }
 
     private var isIPv6Gateway: Bool {
-        routingPolicies?.contains(.IPv6) ?? false
+        path?.contains(.IPv6) ?? false
     }
 
     private var allRoutes4: [IPv4Settings.Route] {
@@ -117,7 +92,7 @@ extension NetworkSettingsBuilder {
         return routes
     }
 
-    private var allDNSServers: [String] {
+    private var resolvingResolts: [String] {
         var servers = localOptions.dnsServers ?? []
         if pullDNS, let remoteServers = remoteOptions.dnsServers {
             servers.append(contentsOf: remoteServers)
@@ -150,12 +125,21 @@ extension NetworkSettingsBuilder {
     }
 }
 
-extension NetworkSettingsBuilder {
-
-    // IPv4/6 address/mask MUST come from server options
-    // routes, instead, can both come from server and local options
-
-    private var computedIPv4Settings: NEIPv4Settings? {
+extension CustomConfigurations {
+    
+    func loadExcludedRoutes() -> [String] {
+        let defaults = UserDefaults(suiteName: "group.galixo.BoltVpn")
+        let isExcludedRoutesEnabled = defaults?.value(forKey: "isExcludedRoutesEnabled") as? Bool ?? false
+        if isExcludedRoutesEnabled == true {
+            let excludedRoutes = defaults?.value(forKey: "excludedRoutes") as? [String] ?? []
+            return excludedRoutes
+        }
+        else {
+            return []
+        }
+    }
+    
+    private var SettingsIPv4Calculated: NEIPv4Settings? {
         guard let ipv4 = remoteOptions.ipv4 else {
             return nil
         }
@@ -188,48 +172,7 @@ extension NetworkSettingsBuilder {
         ipv4Settings.excludedRoutes = excludedRoutes
         return ipv4Settings
     }
-
-    func loadExcludedRoutes() -> [String] {
-        let defaults = UserDefaults(suiteName: "group.galixo.BoltVpn")
-        let isExcludedRoutesEnabled = defaults?.value(forKey: "isExcludedRoutesEnabled") as? Bool ?? false
-        if isExcludedRoutesEnabled == true {
-            let excludedRoutes = defaults?.value(forKey: "excludedRoutes") as? [String] ?? []
-            return excludedRoutes
-        }
-        else {
-            return []
-        }
-    }
-
-
-    private var computedIPv6Settings: NEIPv6Settings? {
-        guard let ipv6 = remoteOptions.ipv6 else {
-            return nil
-        }
-        let ipv6Settings = NEIPv6Settings(addresses: [ipv6.address], networkPrefixLengths: [ipv6.addressPrefixLength as NSNumber])
-        var neRoutes: [NEIPv6Route] = []
-
-        // route all traffic to VPN?
-        if isIPv6Gateway {
-            let defaultRoute = NEIPv6Route.default()
-            defaultRoute.gatewayAddress = ipv6.defaultGateway
-            neRoutes.append(defaultRoute)
-
-        }
-
-        for r in allRoutes6 {
-            let ipv6Route = NEIPv6Route(destinationAddress: r.destination, networkPrefixLength: r.prefixLength as NSNumber)
-            let gw = r.gateway ?? ipv6.defaultGateway
-            ipv6Route.gatewayAddress = gw
-            neRoutes.append(ipv6Route)
-
-        }
-
-        ipv6Settings.includedRoutes = neRoutes
-        ipv6Settings.excludedRoutes = []
-        return ipv6Settings
-    }
-
+    
     var hasGateway: Bool {
         var hasGateway = false
         if isIPv4Gateway && remoteOptions.ipv4 != nil {
@@ -240,9 +183,40 @@ extension NetworkSettingsBuilder {
         }
         return hasGateway
     }
+    
+    private var settingsIPv6Calculated: NEIPv6Settings? {
+        guard let ipv6 = remoteOptions.ipv6 else {
+            return nil
+        }
+        let settingsOf6 = NEIPv6Settings(addresses: [ipv6.address], networkPrefixLengths: [ipv6.addressPrefixLength as NSNumber])
+        var neRoutes: [NEIPv6Route] = []
+
+        // route all traffic to VPN?
+        if isIPv6Gateway {
+            let defaultRoute = NEIPv6Route.default()
+            defaultRoute.gatewayAddress = ipv6.defaultGateway
+            neRoutes.append(defaultRoute)
+
+        }
+
+        for item in allRoutes6 {
+            let ipv6Route = NEIPv6Route(destinationAddress: item.destination, networkPrefixLength: item.prefixLength as NSNumber)
+            let gw = item.gateway ?? ipv6.defaultGateway
+            ipv6Route.gatewayAddress = gw
+            neRoutes.append(ipv6Route)
+
+        }
+
+        settingsOf6.includedRoutes = neRoutes
+        settingsOf6.excludedRoutes = []
+        return settingsOf6
+    }
+    
 }
 
-extension NetworkSettingsBuilder {
+extension CustomConfigurations {
+    
+    
     private var computedDNSSettings: NEDNSSettings? {
         guard localOptions.isDNSEnabled ?? true else {
             return nil
@@ -277,23 +251,15 @@ extension NetworkSettingsBuilder {
 
         // fall back
         if dnsSettings == nil {
-            let dnsServers = allDNSServers
+            let dnsServers = resolvingResolts
             if !dnsServers.isEmpty {
 
                 dnsSettings = NEDNSSettings(servers: dnsServers)
-            } else {
-//                log.warning("DNS: No servers provided, using fall-back servers: \(fallbackDNSServers)")
-//                dnsSettings = NEDNSSettings(servers: fallbackDNSServers)
-                if isGateway {
-
-                } else {
-
-                }
             }
         }
 
         // "hack" for split DNS (i.e. use VPN only for DNS)
-        if !isGateway {
+        if !myWay {
             dnsSettings?.matchDomains = [""]
         }
 
@@ -302,11 +268,11 @@ extension NetworkSettingsBuilder {
             dnsSettings?.domainName = domain
         }
 
-        let searchDomains = allDNSSearchDomains
-        if !searchDomains.isEmpty {
+        let routes = allDNSSearchDomains
+        if !routes.isEmpty {
 
-            dnsSettings?.searchDomains = searchDomains
-            if !isGateway {
+            dnsSettings?.searchDomains = routes
+            if !myWay {
                 dnsSettings?.matchDomains = dnsSettings?.searchDomains
             }
         }
@@ -315,15 +281,15 @@ extension NetworkSettingsBuilder {
     }
 }
 
-extension NetworkSettingsBuilder {
+extension CustomConfigurations {
     private var computedProxySettings: NEProxySettings? {
         guard localOptions.isProxyEnabled ?? true else {
             return nil
         }
         var proxySettings: NEProxySettings?
-        if let httpsProxy = pullProxy ? (remoteOptions.httpsProxy ?? localOptions.httpsProxy) : localOptions.httpsProxy {
+        if let myVpn = pullProxy ? (remoteOptions.httpsProxy ?? localOptions.httpsProxy) : localOptions.httpsProxy {
             proxySettings = NEProxySettings()
-            proxySettings?.httpsServer = httpsProxy.neProxy()
+            proxySettings?.httpsServer = myVpn.neProxy()
             proxySettings?.httpsEnabled = true
 
         }
